@@ -185,3 +185,15 @@ set -x  # Enable debug mode
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Changelog
+
+### Version 1.0.5 - 2025-06-18 14:44:52
+
+- **Version**: 1.0.5
+- **Type**: patch version bump
+- **Git Commit**: [dae664643552c995a42b00e21012e809ad47b724](/commit/dae664643552c995a42b00e21012e809ad47b724)
+- **Commit Message**: chore: bump version to 1.0.5
+
+---
+

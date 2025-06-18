@@ -188,6 +188,22 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### Version 1.0.8 - 2025-06-18 16:50:39
+
+- **Version**: 1.0.8
+- **Type**: patch version bump
+
+#### Frontend Repository
+- **Commit**: [`b863ddf1`](https://github.com/DCC-BS/text-mate-frontend/commit/b863ddf1eaff545a2369bda7db5ca495087fce19)
+- **Message**: Update README.md
+
+#### Backend Repository
+- **Commit**: [`66e25bca`](https://github.com/DCC-BS/text-mate-backend/commit/66e25bcab42caa132172621c141c928cd9602bd2)
+- **Message**: Merge branch 'main' of https://github.com/DCC-BS/text-mate-backend
+
+---
+
+
 ### Version 1.0.7 - 2025-06-18 14:51:05
 
 - **Version**: 1.0.7
@@ -202,14 +218,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - **Message**: Merge branch 'main' of https://github.com/DCC-BS/text-mate-backend
 
 ---
-
-
-### Version 1.0.5 - 2025-06-18 14:44:52
-
-- **Version**: 1.0.5
-- **Type**: patch version bump
-- **Git Commit**: [dae664643552c995a42b00e21012e809ad47b724](/commit/dae664643552c995a42b00e21012e809ad47b724)
-- **Commit Message**: chore: bump version to 1.0.5
-
----
-

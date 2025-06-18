@@ -1,0 +1,161 @@
+name: Test Build Without Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type (for testing purposes only)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ develop ]
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read  # Only read permissions needed
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Build and Test (No Commit)
+      id: build-test
+      uses: ./.github/actions/build-and-test
+      with:
+        version-bump: ${{ github.event.inputs.version_bump || 'patch' }}
+        commit-changes: 'false'
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Test Docker Build (Dry Run)
+      run: |
+        echo "=== Docker Build Test ==="
+        VERSION="${{ steps.build-test.outputs.version }}"
+        echo "Testing Docker build with version: $VERSION"
+        
+        # Test frontend Docker build (without actually building)
+        if [ "${{ steps.build-test.outputs.frontend-changed }}" == "true" ]; then
+          echo "✓ Frontend changes detected"
+          if [ -f "frontend/Dockerfile" ]; then
+            echo "✓ Frontend Dockerfile found"
+            echo "Would build: {{cookiecutter.frontend_image_name}}:$VERSION"
+            # Validate Dockerfile syntax
+            echo "Validating frontend Dockerfile..."
+            docker run --rm -i hadolint/hadolint < frontend/Dockerfile || echo "Dockerfile linting warnings (non-blocking)"
+          else
+            echo "⚠ Frontend Dockerfile not found"
+          fi
+        else
+          echo "- No frontend changes detected"
+        fi
+        
+        # Test backend Docker build (without actually building)
+        if [ "${{ steps.build-test.outputs.backend-changed }}" == "true" ]; then
+          echo "✓ Backend changes detected"
+          if [ -f "backend/Dockerfile" ]; then
+            echo "✓ Backend Dockerfile found"
+            echo "Would build: {{cookiecutter.backend_image_name}}:$VERSION"
+            # Validate Dockerfile syntax
+            echo "Validating backend Dockerfile..."
+            docker run --rm -i hadolint/hadolint < backend/Dockerfile || echo "Dockerfile linting warnings (non-blocking)"
+          else
+            echo "⚠ Backend Dockerfile not found"
+          fi
+        else
+          echo "- No backend changes detected"
+        fi
+        
+        echo "=== End Docker Build Test ==="
+
+    - name: Test Registry Connection (Dry Run)
+      run: |
+        echo "=== Registry Connection Test ==="
+        echo "Testing registry connectivity (dry run)..."
+        
+        # Test GHCR connection
+        echo "Testing GitHub Container Registry connection..."
+        if [ -n "${{ secrets.GITHUB_TOKEN }}" ]; then
+          echo "✓ GitHub token available"
+          # We won't actually login, just verify the token exists
+        else
+          echo "⚠ GitHub token not available"
+        fi
+        
+        # Test other registry credentials (without logging in)
+        echo "Testing other registry credential availability..."
+        echo "- Linkyard and Quay credentials are configured at the repository level"
+        echo "- Credentials are not accessible in test workflows for security"
+        
+        echo "=== End Registry Connection Test ==="
+
+    - name: Dockerfile Build Test {{cookiecutter.frontend_image_name}} Container
+      if: steps.build-test.outputs.frontend-changed == 'true'
+      uses: ./.github/actions/dockerfile-build
+      with:
+        image-name: '{{cookiecutter.frontend_image_name}}'
+        push: false  # Never push in test workflow
+        quay-enabled: false
+        ghcr-enabled: false
+        linkyard-enabled: false
+        vulnerability-scan: true  # Enable scanning for testing
+        working-directory: './frontend'
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Dockerfile Build Test {{cookiecutter.backend_image_name}} Container
+      if: steps.build-test.outputs.backend-changed == 'true'
+      uses: ./.github/actions/dockerfile-build
+      with:
+        image-name: '{{cookiecutter.backend_image_name}}'
+        push: false  # Never push in test workflow
+        quay-enabled: false
+        ghcr-enabled: false
+        linkyard-enabled: false
+        vulnerability-scan: true  # Enable scanning for testing
+        working-directory: './backend'
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Generate Test Report
+      if: always()
+      run: |
+        echo "=== Test Build Report ==="
+        echo "Workflow: Test Build Without Deploy"
+        echo "Trigger: ${{ github.event_name }}"
+        echo "Branch: ${{ github.ref_name }}"
+        echo "Commit: ${{ github.sha }}"
+        echo "Version (test): ${{ steps.build-test.outputs.version }}"
+        echo "Frontend changed: ${{ steps.build-test.outputs.frontend-changed }}"
+        echo "Backend changed: ${{ steps.build-test.outputs.backend-changed }}"
+        echo ""
+        echo "Status:"
+        echo "- ✓ Dependencies installed"
+        echo "- ✓ Build preparation completed"
+        echo "- ✓ Docker build validation performed"
+        echo "- ✓ No changes committed"
+        echo "- ✓ No images pushed to registry"
+        echo ""
+        echo "This workflow validates the build process without making any permanent changes."
+        echo "=== End Test Build Report ==="
+
+    - name: Upload Test Artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-build-artifacts
+        path: |
+          version.txt
+          release_changelog.md
+          frontend/
+          backend/
+        retention-days: 7

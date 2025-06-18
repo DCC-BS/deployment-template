@@ -1,0 +1,13 @@
+{
+    "project_slug": "demo-app",
+    "frontend_repo_url": "https://github.com/your-org/frontend-repo.git",
+    "backend_repo_url": "https://github.com/your-org/backend-repo.git",
+    "frontend_image_name": "frontend-image",
+    "backend_image_name": "backend-image",
+    "start_version": "0.0.1",
+    "_copy_without_render": [
+        "components/*vue",
+        "pages/*vue",
+        ".github/workflows/*yml"
+    ]
+}

@@ -16,18 +16,6 @@ This repository contains a comprehensive deployment preparation script designed 
 
 ## Usage
 
-### Local Usage
-
-```bash
-# Run with default patch version bump
-./scripts/prepare-deployment.sh
-
-# Specify version bump type
-./scripts/prepare-deployment.sh patch   # 1.0.0 -> 1.0.1
-./scripts/prepare-deployment.sh minor   # 1.0.0 -> 1.1.0
-./scripts/prepare-deployment.sh major   # 1.0.0 -> 2.0.0
-```
-
 ### Environment Variables
 
 Set these environment variables to customize repository URLs:
@@ -185,52 +173,3 @@ set -x  # Enable debug mode
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Changelog
-
-### Version 1.0.9 - 2025-06-18 16:51:10
-
-- **Version**: 1.0.9
-- **Type**: patch version bump
-
-#### Frontend Repository
-- **Commit**: [`b863ddf1`](https://github.com/DCC-BS/text-mate-frontend/commit/b863ddf1eaff545a2369bda7db5ca495087fce19)
-- **Message**: Update README.md
-
-#### Backend Repository
-- **Commit**: [`66e25bca`](https://github.com/DCC-BS/text-mate-backend/commit/66e25bcab42caa132172621c141c928cd9602bd2)
-- **Message**: Merge branch 'main' of https://github.com/DCC-BS/text-mate-backend
-
----
-
-
-### Version 1.0.8 - 2025-06-18 16:50:39
-
-- **Version**: 1.0.8
-- **Type**: patch version bump
-
-#### Frontend Repository
-- **Commit**: [`b863ddf1`](https://github.com/DCC-BS/text-mate-frontend/commit/b863ddf1eaff545a2369bda7db5ca495087fce19)
-- **Message**: Update README.md
-
-#### Backend Repository
-- **Commit**: [`66e25bca`](https://github.com/DCC-BS/text-mate-backend/commit/66e25bcab42caa132172621c141c928cd9602bd2)
-- **Message**: Merge branch 'main' of https://github.com/DCC-BS/text-mate-backend
-
----
-
-
-### Version 1.0.7 - 2025-06-18 14:51:05
-
-- **Version**: 1.0.7
-- **Type**: patch version bump
-
-#### Frontend Repository
-- **Commit**: [`b863ddf1`](https://github.com/DCC-BS/text-mate-frontend/commit/b863ddf1eaff545a2369bda7db5ca495087fce19)
-- **Message**: Update README.md
-
-#### Backend Repository
-- **Commit**: [`66e25bca`](https://github.com/DCC-BS/text-mate-backend/commit/66e25bcab42caa132172621c141c928cd9602bd2)
-- **Message**: Merge branch 'main' of https://github.com/DCC-BS/text-mate-backend
-
----

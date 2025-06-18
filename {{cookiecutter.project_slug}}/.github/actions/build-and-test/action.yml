@@ -1,0 +1,177 @@
+name: "Build and Test Composite Action"
+description: "Reusable action for setting up environment, installing dependencies, and building projects"
+
+inputs:
+  version-bump:
+    description: "Version bump type (patch, minor, major)"
+    required: true
+    default: "patch"
+  commit-changes:
+    description: "Whether to commit version changes to git"
+    required: false
+    default: "true"
+  github-token:
+    description: "GitHub token for authentication"
+    required: true
+
+outputs:
+  version:
+    description: "The new version that was generated"
+    value: ${{ steps.get-version.outputs.version }}
+  frontend-changed:
+    description: "Whether frontend code was changed"
+    value: ${{ steps.check-changes.outputs.frontend-changed }}
+  backend-changed:
+    description: "Whether backend code was changed"
+    value: ${{ steps.check-changes.outputs.backend-changed }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Setup UV
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+
+    - name: Setup Node.js (fallback for frontend)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Setup Python (for backend)
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Cache Bun dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.bun-cache
+        key: bun-${{ runner.os }}-${{ hashFiles('frontend/bun.lockb') }}
+        restore-keys: |
+          bun-${{ runner.os }}-
+
+    - name: Cache UV dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.uv-cache
+        key: uv-${{ runner.os }}-${{ hashFiles('backend/uv.lock', 'backend/pyproject.toml') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+
+    - name: Configure Git
+      if: ${{ inputs.commit-changes == 'true' }}
+      shell: bash
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Run deployment preparation script
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        if [ "${{ inputs.commit-changes }}" == "false" ]; then
+          # Run in test mode (no commits)
+          ./scripts/prepare-deployment.sh ${{ inputs.version-bump }} --test
+        else
+          # Run in deploy mode (with commits)
+          ./scripts/prepare-deployment.sh ${{ inputs.version-bump }}
+        fi
+
+    - name: Get version
+      id: get-version
+      shell: bash
+      run: |
+        if [ -f "version.txt" ]; then
+          VERSION=$(cat version.txt)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Generated version: $VERSION"
+        else
+          echo "version=unknown" >> $GITHUB_OUTPUT
+          echo "No version.txt found"
+        fi
+
+    - name: Check for changes
+      id: check-changes
+      shell: bash
+      run: |
+        # Check if frontend directory exists and has content
+        if [ -d "frontend" ] && [ "$(ls -A frontend)" ]; then
+          echo "frontend-changed=true" >> $GITHUB_OUTPUT
+          echo "Frontend directory found with content"
+        else
+          echo "frontend-changed=false" >> $GITHUB_OUTPUT
+          echo "No frontend changes detected"
+        fi
+        
+        # Check if backend directory exists and has content
+        if [ -d "backend" ] && [ "$(ls -A backend)" ]; then
+          echo "backend-changed=true" >> $GITHUB_OUTPUT
+          echo "Backend directory found with content"
+        else
+          echo "backend-changed=false" >> $GITHUB_OUTPUT
+          echo "No backend changes detected"
+        fi
+
+    - name: Build Docker images (dry run)
+      if: ${{ inputs.commit-changes == 'false' }}
+      shell: bash
+      run: |
+        echo "=== Docker Build Dry Run ==="
+        VERSION=$(cat version.txt 2>/dev/null || echo "unknown")
+        echo "Would build Docker images with version: $VERSION"
+        
+        if [ -d "frontend" ] && [ -f "frontend/Dockerfile" ]; then
+          echo "Would build frontend image: {{cookiecutter.frontend_image_name}}:$VERSION"
+        fi
+        
+        if [ -d "backend" ] && [ -f "backend/Dockerfile" ]; then
+          echo "Would build backend image: {{cookiecutter.backend_image_name}}:$VERSION"
+        fi
+        
+        echo "=== End Docker Build Dry Run ==="
+
+    - name: Verify build readiness
+      shell: bash
+      run: |
+        echo "=== Build Readiness Check ==="
+        VERSION=$(cat version.txt 2>/dev/null || echo "unknown")
+        echo "Version: $VERSION"
+        
+        # Check frontend
+        if [ -d "frontend" ]; then
+          echo "✓ Frontend directory exists"
+          if [ -f "frontend/package.json" ]; then
+            echo "✓ Frontend package.json found"
+          fi
+          if [ -f "frontend/Dockerfile" ]; then
+            echo "✓ Frontend Dockerfile found"
+          else
+            echo "⚠ Frontend Dockerfile not found"
+          fi
+        else
+          echo "✗ Frontend directory not found"
+        fi
+        
+        # Check backend
+        if [ -d "backend" ]; then
+          echo "✓ Backend directory exists"
+          if [ -f "backend/pyproject.toml" ] || [ -f "backend/requirements.txt" ]; then
+            echo "✓ Backend dependency files found"
+          fi
+          if [ -f "backend/Dockerfile" ]; then
+            echo "✓ Backend Dockerfile found"
+          else
+            echo "⚠ Backend Dockerfile not found"
+          fi
+        else
+          echo "✗ Backend directory not found"
+        fi
+        
+        echo "=== End Build Readiness Check ==="

@@ -28,42 +28,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v1
-      with:
-        bun-version: latest
-
-    - name: Setup UV
-      uses: astral-sh/setup-uv@v3
-      with:
-        version: "latest"
-
-    - name: Setup Node.js (fallback for frontend)
-      uses: actions/setup-node@v4
-      with:
-        node-version: "20"
-
-    - name: Setup Python (for backend)
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
-
-    - name: Cache Bun dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.bun-cache
-        key: bun-${{ runner.os }}-${{ hashFiles('frontend/bun.lockb') }}
-        restore-keys: |
-          bun-${{ runner.os }}-
-
-    - name: Cache UV dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.uv-cache
-        key: uv-${{ runner.os }}-${{ hashFiles('backend/uv.lock', 'backend/pyproject.toml') }}
-        restore-keys: |
-          uv-${{ runner.os }}-
-
     - name: Configure Git
       if: ${{ inputs.commit-changes == 'true' }}
       shell: bash

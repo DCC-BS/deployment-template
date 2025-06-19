@@ -68,8 +68,10 @@ inputs:
 outputs:
   container-pushed:
     description: "Container pushed flag"
+    value: "false"
   sha-tag-name:
     description: "SHA tag name"
+    value: ""
 
 runs:
   using: "composite"

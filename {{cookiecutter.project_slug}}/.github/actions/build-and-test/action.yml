@@ -119,24 +119,6 @@ runs:
           echo "No backend changes detected"
         fi
 
-    - name: Build Docker images (dry run)
-      if: ${{ inputs.commit-changes == 'false' }}
-      shell: bash
-      run: |
-        echo "=== Docker Build Dry Run ==="
-        VERSION=$(cat version.txt 2>/dev/null || echo "unknown")
-        echo "Would build Docker images with version: $VERSION"
-        
-        if [ -d "frontend" ] && [ -f "frontend/Dockerfile" ]; then
-          echo "Would build frontend image: {{cookiecutter.frontend_image_name}}:$VERSION"
-        fi
-        
-        if [ -d "backend" ] && [ -f "backend/Dockerfile" ]; then
-          echo "Would build backend image: {{cookiecutter.backend_image_name}}:$VERSION"
-        fi
-        
-        echo "=== End Docker Build Dry Run ==="
-
     - name: Verify build readiness
       shell: bash
       run: |

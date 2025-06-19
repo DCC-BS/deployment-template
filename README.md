@@ -16,6 +16,13 @@ This repository contains a comprehensive deployment preparation script designed 
 
 ## Usage
 
+### Cookiecutter
+Create a new project using this template with [Cookiecutter](https://www.cookiecutter.io/):
+
+```bash
+cookiecutter https://github.com/DCC-BS/deployment-template
+```
+
 ### Environment Variables
 
 Set these environment variables to customize repository URLs:

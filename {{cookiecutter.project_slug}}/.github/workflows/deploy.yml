@@ -62,7 +62,7 @@ jobs:
       if: steps.build-test.outputs.frontend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
       with:
-        image-name: ${{ FRONTEND_IMAGE_NAME }}
+        image-name: ${{ env.FRONTEND_IMAGE_NAME }}
         push: true
         quay-enabled: false
         ghcr-enabled: true
@@ -78,7 +78,7 @@ jobs:
       if: steps.build-test.outputs.backend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
       with:
-        image-name: ${{ BACKEND_IMAGE_NAME }}
+        image-name: ${{ env.BACKEND_IMAGE_NAME }}
         push: true
         quay-enabled: false
         ghcr-enabled: true

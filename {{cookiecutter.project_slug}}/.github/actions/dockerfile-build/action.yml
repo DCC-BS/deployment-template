@@ -77,7 +77,7 @@ runs:
   using: "composite"
   steps:
     - name: Download pre-build artifacts
-      if: ${{ {{ inputs.download-artifact == 'true' }} }}
+      if: ${{ inputs.download-artifact == 'true' }}
       uses: actions/download-artifact@v4
 
     - name: Set SHORT_COMMIT_SHA
@@ -85,7 +85,7 @@ runs:
       run: echo "SHORT_COMMIT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
     - id: sha-tag-step
-      if: ${{ {{ inputs.sha-tag == 'true' }} }}
+      if: ${{ inputs.sha-tag == 'true' }}
       shell: bash
       run: |
         echo "sha-tag-name=sha-${SHORT_COMMIT_SHA}" >> $GITHUB_OUTPUT
@@ -99,16 +99,16 @@ runs:
       uses: docker/metadata-action@v5
       with:
         images: |
-          name=ghcr.io/${{ {{ env.REPOSITORY_OWNER_LOWERCASE }} }}/${{ {{ inputs.image-name }} }},enable=${{ {{ inputs.ghcr-enabled }} }}
-          name=docker.nexus.itbs.linkyard-cloud.ch/${{ {{ inputs.image-name }} }},enable=${{ {{ inputs.linkyard-enabled }} }}
-          name=quay.io/${{ {{ inputs.image-name }} }},enable=${{ {{ inputs.quay-enabled && inputs.quay-organization == '' && inputs.quay-team == '' }} }}
-          name=quay.io/${{ {{ inputs.quay-organization }} }}/${{ {{ inputs.image-name }} }},enable=${{ {{ inputs.quay-enabled && inputs.quay-organization != '' && inputs.quay-team == '' }} }}
-          name=quay.io/${{ {{ inputs.quay-organization }} }}/${{ {{ inputs.quay-team }} }}/${{ {{ inputs.image-name }} }},enable=${{ {{ inputs.quay-enabled && inputs.quay-organization != '' && inputs.quay-team != '' }} }}
+          name=ghcr.io/${{ env.REPOSITORY_OWNER_LOWERCASE }}/${{ inputs.image-name }},enable=${{ inputs.ghcr-enabled }}
+          name=docker.nexus.itbs.linkyard-cloud.ch/${{ inputs.image-name }},enable=${{ inputs.linkyard-enabled }}
+          name=quay.io/${{ inputs.image-name }},enable=${{ inputs.quay-enabled && inputs.quay-organization == '' && inputs.quay-team == '' }}
+          name=quay.io/${{ inputs.quay-organization }}/${{ inputs.image-name }},enable=${{ inputs.quay-enabled && inputs.quay-organization != '' && inputs.quay-team == '' }}
+          name=quay.io/${{ inputs.quay-organization }}/${{ inputs.quay-team }}/${{ inputs.image-name }},enable=${{ inputs.quay-enabled && inputs.quay-organization != '' && inputs.quay-team != '' }}
         tags: |
-          type=raw,value=latest,enable={{ {{is_default_branch}} }}
-          type=ref,event=branch,enable=${{ {{ contains(github.ref, 'release') }} }}
-          type=semver,pattern={{ {{version}} }}
-          type=sha,enable=${{ {{ inputs.sha-tag }} }}
+          type=raw,value=latest,enable={{is_default_branch}}
+          type=ref,event=branch,enable=${{ contains(github.ref, 'release') }}
+          type=semver,pattern={{version}}
+          type=sha,enable=${{ inputs.sha-tag }}
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -116,56 +116,56 @@ runs:
         driver: docker
 
     - name: Build only and load into local docker (for vulnerability scanner)
-      if: ${{ {{ inputs.vulnerability-scan == 'true' }} }}
+      if: ${{ inputs.vulnerability-scan == 'true' }}
       uses: docker/build-push-action@v6
       with:
-        context: ${{ {{ inputs.working-directory }} }}
-        file: ${{ {{ inputs.working-directory }} }}/${{ {{ inputs.docker-filename }} }}
+        context: ${{ inputs.working-directory }}
+        file: ${{ inputs.working-directory }}/${{ inputs.docker-filename }}
         load: true
         push: "false"
-        tags: ${{ {{ steps.meta.outputs.tags }} }}
-        labels: ${{ {{ steps.meta.outputs.labels }} }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
 
     - name: Run trivy vulnerability scanner
-      if: ${{ {{ inputs.vulnerability-scan == 'true' }} }}
+      if: ${{ inputs.vulnerability-scan == 'true' }}
       uses: FD-ITBS/reusable-workflows/.github/actions/trivy-scan@main
       with:
-        image-to-scan: ghcr.io/${{ {{ env.REPOSITORY_OWNER_LOWERCASE }} }}/${{ {{ inputs.image-name }} }}:sha-${{ {{ env.SHORT_COMMIT_SHA }} }}
+        image-to-scan: ghcr.io/${{ env.REPOSITORY_OWNER_LOWERCASE }}/${{ inputs.image-name }}:sha-${{ env.SHORT_COMMIT_SHA }}
 
     - name: Login to linkyard registry
-      if: ${{ {{ inputs.push == 'true' && inputs.linkyard-enabled == 'true' }} }}
+      if: ${{ inputs.push == 'true' && inputs.linkyard-enabled == 'true' }}
       uses: docker/login-action@v3
       with:
         registry: docker.nexus.itbs.linkyard-cloud.ch
-        username: ${{ {{ inputs.linkyard-user }} }}
-        password: ${{ {{ inputs.linkyard-password }} }}
+        username: ${{ inputs.linkyard-user }}
+        password: ${{ inputs.linkyard-password }}
 
     - name: Login to quay.io registry
-      if: ${{ {{ inputs.push == 'true' && inputs.quay-enabled == 'true' }} }}
+      if: ${{ inputs.push == 'true' && inputs.quay-enabled == 'true' }}
       uses: docker/login-action@v3
       with:
         registry: quay.io
-        username: ${{ {{ inputs.quay-user }} }}
-        password: ${{ {{ inputs.quay-password }} }}
+        username: ${{ inputs.quay-user }}
+        password: ${{ inputs.quay-password }}
 
     - name: Login to GitHub Container Registry
-      if: ${{ {{ inputs.ghcr-enabled == 'true' }} }}
+      if: ${{ inputs.ghcr-enabled == 'true' }}
       uses: docker/login-action@v3
       with:
         registry: ghcr.io
-        username: ${{ {{ github.actor }} }}
-        password: ${{ {{ inputs.github-token }} }}
+        username: ${{ github.actor }}
+        password: ${{ inputs.github-token }}
 
     - name: Build (and push if needed)
       uses: docker/build-push-action@v6
       with:
-        context: ${{ {{ inputs.working-directory }} }}
-        file: ${{ {{ inputs.working-directory }} }}/${{ {{ inputs.docker-filename }} }}
-        push: ${{ {{ inputs.push }} }}
-        tags: ${{ {{ steps.meta.outputs.tags }} }}
-        labels: ${{ {{ steps.meta.outputs.labels }} }}
+        context: ${{ inputs.working-directory }}
+        file: ${{ inputs.working-directory }}/${{ inputs.docker-filename }}
+        push: ${{ inputs.push }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
 
     - name: Set container-pushed output
-      if: ${{ {{ inputs.push == 'true' }} }}
+      if: ${{ inputs.push == 'true' }}
       shell: bash
       run: echo "container-pushed=true" >> $GITHUB_OUTPUT

@@ -88,8 +88,29 @@ manage_version() {
     
     log_info "Current version: $CURRENT_VERSION"
     
-    # Parse version components
-    IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+    # Parse version components and validate format
+    IFS='.' read -r major minor patch extra <<< "$CURRENT_VERSION"
+    
+    # Validate and normalize version components
+    if [[ ! "$major" =~ ^[0-9]+$ ]]; then
+        log_warning "Invalid major version '$major', defaulting to 1"
+        major=1
+    fi
+    
+    if [[ ! "$minor" =~ ^[0-9]+$ ]]; then
+        log_warning "Invalid minor version '$minor', defaulting to 0"
+        minor=0
+    fi
+    
+    if [[ ! "$patch" =~ ^[0-9]+$ ]]; then
+        log_warning "Invalid patch version '$patch', defaulting to 0"
+        patch=0
+    fi
+    
+    # Warn if there are extra version components
+    if [[ -n "$extra" ]]; then
+        log_warning "Version has extra components beyond major.minor.patch, normalizing to $major.$minor.$patch"
+    fi
     
     # Bump version on parameter
     case "$VERSION_BUMP" in

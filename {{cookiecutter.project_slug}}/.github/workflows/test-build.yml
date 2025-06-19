@@ -45,11 +45,11 @@ jobs:
         commit-changes: 'false'
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Dockerfile Build Test ${{ FRONTEND_IMAGE_NAME }} Container
+    - name: Dockerfile Build Test ${{ env.FRONTEND_IMAGE_NAME }} Container
       if: steps.build-test.outputs.frontend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
       with:
-        image-name: ${{ FRONTEND_IMAGE_NAME }}
+        image-name: ${{ env.FRONTEND_IMAGE_NAME }}
         push: false  # Never push in test workflow
         quay-enabled: false
         ghcr-enabled: false
@@ -58,11 +58,11 @@ jobs:
         working-directory: './frontend'
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Dockerfile Build Test ${{ BACKEND_IMAGE_NAME }} Container
+    - name: Dockerfile Build Test ${{ env.BACKEND_IMAGE_NAME }} Container
       if: steps.build-test.outputs.backend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
       with:
-        image-name: ${{ BACKEND_IMAGE_NAME }}
+        image-name: ${{ env.BACKEND_IMAGE_NAME }}
         push: false  # Never push in test workflow
         quay-enabled: false
         ghcr-enabled: false

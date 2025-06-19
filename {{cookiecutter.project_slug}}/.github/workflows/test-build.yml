@@ -45,7 +45,7 @@ jobs:
         commit-changes: 'false'
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Dockerfile Build Test ${{ env.FRONTEND_IMAGE_NAME }} Container
+    - name: Build Test ${{ env.FRONTEND_IMAGE_NAME }} Container
       if: steps.build-test.outputs.frontend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
       with:
@@ -58,7 +58,7 @@ jobs:
         working-directory: './frontend'
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Dockerfile Build Test ${{ env.BACKEND_IMAGE_NAME }} Container
+    - name: Build Test ${{ env.BACKEND_IMAGE_NAME }} Container
       if: steps.build-test.outputs.backend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
       with:
@@ -92,16 +92,4 @@ jobs:
         echo ""
         echo "This workflow validates the build process without making any permanent changes."
         echo "=== End Test Build Report ==="
-
-    - name: Upload Test Artifacts
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-build-artifacts
-        path: |
-          version.txt
-          release_changelog.md
-          frontend/
-          backend/
-        retention-days: 7
 {% endraw %}

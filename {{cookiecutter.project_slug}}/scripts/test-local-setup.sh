@@ -1,6 +1,14 @@
 #!/bin/bash
 
-# Local testing script for deployment preparation
+# Local testing script for de    # Check for Docker (recommended for testing builds)
+    if ! command -v docker &> /dev/null; then
+        log_warning "Docker not found - Docker builds will be skipped"
+    else
+        log_success "Docker found"
+    fi
+    
+    # Note: Bun and UV are not required locally as builds happen in Docker containers
+    log_info "Note: Dependency management (Bun, UV, etc.) handled within Docker containers"
 # This script helps you test the deployment process locally before running it in CI/CD
 
 set -e
@@ -256,8 +264,8 @@ generate_report() {
 ### Dependencies
 - Git: $(command -v git >/dev/null && echo "✅ Available" || echo "❌ Missing")
 - Docker: $(command -v docker >/dev/null && echo "✅ Available" || echo "⚠️ Not available")
-- Bun: $(command -v bun >/dev/null && echo "✅ Available" || echo "⚠️ Not available")
-- UV: $(command -v uv >/dev/null && echo "✅ Available" || echo "⚠️ Not available")
+
+**Note**: Bun and UV are not required locally as all dependency management happens within Docker containers.
 
 ### Repository Structure
 - Deployment script: $([ -f "scripts/prepare-deployment.sh" ] && echo "✅ Found" || echo "❌ Missing")
@@ -273,10 +281,11 @@ generate_report() {
 ## Recommendations
 
 1. **If Docker is not available**: Install Docker for local testing of container builds
-2. **If Bun is not available**: Install Bun for faster frontend builds
-3. **If UV is not available**: Install UV for faster Python dependency management
-4. **Create .env file**: Configure FRONTEND_REPO_URL and BACKEND_REPO_URL
-5. **Test in CI**: Run the test-build workflow to validate the full pipeline
+2. **Create .env file**: Configure FRONTEND_REPO_URL and BACKEND_REPO_URL  
+3. **Test in CI**: Run the test-build workflow to validate the full pipeline
+4. **Customize Dockerfiles**: Ensure your frontend and backend repositories have proper Dockerfiles
+
+**Note**: This template uses a Docker-first approach. All dependency management (Bun, UV, npm, pip, etc.) is handled within the respective Dockerfiles.
 
 ## Next Steps
 

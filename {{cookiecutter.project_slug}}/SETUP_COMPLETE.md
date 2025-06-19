@@ -19,9 +19,8 @@ Your deployment repository now has a complete CI/CD setup with two workflows and
 
 ### 🧩 Reusable Action
 3. **`.github/actions/build-and-test/action.yml`** - Shared build logic
-   - Environment setup (Bun, UV, Node.js, Python)
-   - Dependency caching
    - Version management
+   - Repository cloning and preparation
    - **Reused by**: Both workflows
 
 ### 📚 Documentation
@@ -100,13 +99,13 @@ Add steps to the reusable action for changes that should apply to both workflows
 your-repo/
 ├── .env                    # Repository URLs (optional)
 ├── version.txt             # Current version (auto-generated)
-├── frontend/               # Frontend application
-│   ├── package.json        # Dependencies
-│   ├── bun.lockb          # Lock file
+├── frontend/               # Frontend application (cloned during workflow)
+│   ├── package.json        # Dependencies (for reference)
+│   ├── bun.lockb          # Lock file (for reference)
 │   └── Dockerfile         # Container build
-├── backend/                # Backend application  
-│   ├── pyproject.toml     # Dependencies
-│   ├── uv.lock           # Lock file
+├── backend/                # Backend application (cloned during workflow)
+│   ├── pyproject.toml     # Dependencies (for reference)
+│   ├── uv.lock           # Lock file (for reference)
 │   └── Dockerfile        # Container build
 └── scripts/
     └── prepare-deployment.sh
@@ -115,7 +114,7 @@ your-repo/
 ## 🎉 What Happens Next
 
 ### On Test Build:
-1. 🔍 Validates build process
+1. 🔍 Validates deployment preparation process
 2. 🏗️ Tests Docker builds (no push)
 3. 🛡️ Runs security scans
 4. 📊 Generates test report
@@ -138,6 +137,8 @@ your-repo/
 
 ## ✨ Benefits
 
+✅ **Simplicity**: No dependency management overhead  
+✅ **Docker-First**: All builds happen in containers  
 ✅ **Separation of Concerns**: Test vs Deploy workflows  
 ✅ **Reusable Components**: Shared build logic  
 ✅ **Safety**: Test before deploy  

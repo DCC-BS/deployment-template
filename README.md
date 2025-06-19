@@ -5,14 +5,13 @@ This repository contains a comprehensive deployment preparation script designed 
 ## Features
 
 - ✅ Clone frontend and backend repositories into separate folders
-- ✅ Cache Bun packages for faster frontend builds
-- ✅ Cache UV Python modules for faster backend builds
 - ✅ Customizable GitHub repository URLs via environment variables
 - ✅ Semantic version management (patch, minor, major)
 - ✅ Automatic version file creation and updates
 - ✅ Git commit and push of version updates
 - ✅ Colored logging output for better visibility
 - ✅ Project preparation for Docker builds
+- ✅ Docker-first approach (no dependency caching or building)
 
 ## Usage
 
@@ -39,9 +38,8 @@ The included workflow file (`.github/workflows/deploy.yml`) demonstrates how to 
 
 1. **Manual Trigger**: Use `workflow_dispatch` to manually trigger deployment preparation
 2. **Input Parameters**: Choose version bump type and repository URLs
-3. **Caching**: Automatic caching for both Bun and UV dependencies
-4. **Docker Build Step**: Placeholder for your Docker build commands
-5. **Release Creation**: Automatically creates GitHub releases
+3. **Docker Build Step**: Builds Docker images without dependency caching
+4. **Release Creation**: Automatically creates GitHub releases
 
 #### Required Secrets
 
@@ -63,15 +61,17 @@ If your repositories are private, you may need to set up additional authenticati
 
 ### 2. Dependency Caching
 
-#### Frontend (Bun)
-- Detects `bun.lockb` files
-- Creates cache keys based on lockfile hash
-- Configures Bun cache directory
+**Note**: This deployment template uses a Docker-first approach. Dependencies are managed and built within Docker containers during the build process. No pre-caching of Bun or UV dependencies is performed.
 
-#### Backend (UV)
-- Detects `uv.lock` or `pyproject.toml` files
-- Creates cache keys based on dependency file hash
-- Configures UV cache directory
+#### Frontend Dependencies
+- Managed within `frontend/Dockerfile`
+- Built during Docker image creation
+- No external caching required
+
+#### Backend Dependencies  
+- Managed within `backend/Dockerfile`
+- Built during Docker image creation
+- No external caching required
 
 ### 3. Version Management
 - Creates `version.txt` file if it doesn't exist (starts at 1.0.0)
@@ -82,7 +82,7 @@ If your repositories are private, you may need to set up additional authenticati
 - Verifies project structure and required files
 - Checks for Dockerfiles in both frontend and backend
 - Prepares projects for Docker build process
-- No actual building (handled by Docker)
+- All building happens within Docker containers
 
 ## File Structure
 
@@ -102,44 +102,44 @@ text-mate-deploy/
 ### Local Development
 - Git
 - Bash shell
-- Bun (for frontend builds)
-- UV (for backend builds)
+- Docker (for building and testing containers)
 
 ### GitHub Actions
-All prerequisites are automatically installed via the workflow:
-- Bun via `oven-sh/setup-bun`
-- UV via `astral-sh/setup-uv`
-- Node.js and Python as fallbacks
+The following tools are used but handled within Docker containers:
+- Docker (via docker/setup-buildx-action)
+- All other dependencies managed within Dockerfiles
 
 ## Customization
 
 ### Adding Custom Build Steps
 
-Edit the `build_projects()` function in `deploy.sh` to add custom build commands:
+All builds are handled within Docker containers using the respective Dockerfiles. To customize builds:
 
-```bash
-# Build frontend
-if [ -d "./frontend" ]; then
-    cd ./frontend
-    # Add your custom frontend build commands here
-    bun run build
-    bun run test
-    cd ..
-fi
-
-# Build backend
-if [ -d "./backend" ]; then
-    cd ./backend
-    # Add your custom backend build commands here
-    uv run pytest
-    uv build
-    cd ..
-fi
+**Frontend builds**: Edit `frontend/Dockerfile` in your frontend repository
+```dockerfile
+# Example frontend Dockerfile customization
+FROM node:18
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
 ```
 
-### Modifying Cache Strategies
+**Backend builds**: Edit `backend/Dockerfile` in your backend repository  
+```dockerfile
+# Example backend Dockerfile customization
+FROM python:3.11
+WORKDIR /app
+COPY requirements.txt ./
+RUN pip install -r requirements.txt
+COPY . .
+RUN python -m pytest
+```
 
-The caching setup can be customized in the `setup_frontend_cache()` and `setup_backend_cache()` functions.
+### Docker-First Approach
+
+This template uses a Docker-first approach where all dependency management and building happens within containers, eliminating the need for external caching or environment setup.
 
 ## Troubleshooting
 
@@ -159,6 +159,10 @@ The caching setup can be customized in the `setup_frontend_cache()` and `setup_b
    ```bash
    export FRONTEND_REPO_URL="https://github.com/correct-org/frontend-repo.git"
    ```
+
+4. **Docker Build Fails**: Ensure Dockerfiles exist in both frontend and backend repositories
+   - Check `frontend/Dockerfile` exists and is valid
+   - Check `backend/Dockerfile` exists and is valid
 
 ### Debug Mode
 

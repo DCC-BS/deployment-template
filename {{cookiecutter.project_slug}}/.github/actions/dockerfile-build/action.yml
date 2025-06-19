@@ -48,6 +48,10 @@ inputs:
     description: "Enable push to ghcr.io"
     required: false
     default: "true"
+  additional-tag:
+    description: "Additional custom tag to apply to the Docker image"
+    required: false
+    default: ""  
   # Secrets passed as inputs
   linkyard-user:
     description: "Linkyard registry user"
@@ -101,14 +105,16 @@ runs:
         images: |
           name=ghcr.io/${{ env.REPOSITORY_OWNER_LOWERCASE }}/${{ inputs.image-name }},enable=${{ inputs.ghcr-enabled }}
           name=docker.nexus.itbs.linkyard-cloud.ch/${{ inputs.image-name }},enable=${{ inputs.linkyard-enabled }}
-          name=quay.io/${{ inputs.image-name }},enable=${{ inputs.quay-enabled && inputs.quay-organization == '' && inputs.quay-team == '' }}
-          name=quay.io/${{ inputs.quay-organization }}/${{ inputs.image-name }},enable=${{ inputs.quay-enabled && inputs.quay-organization != '' && inputs.quay-team == '' }}
-          name=quay.io/${{ inputs.quay-organization }}/${{ inputs.quay-team }}/${{ inputs.image-name }},enable=${{ inputs.quay-enabled && inputs.quay-organization != '' && inputs.quay-team != '' }}
+          name=quay.io/${{ inputs.image-name }},enable=${{ inputs.quay-enabled == 'true' && inputs.quay-organization == '' && inputs.quay-team == '' }}
+          name=quay.io/${{ inputs.quay-organization }}/${{ inputs.image-name }},enable=${{ inputs.quay-enabled  == 'true' && inputs.quay-organization != '' && inputs.quay-team == '' }}
+          name=quay.io/${{ inputs.quay-organization }}/${{ inputs.quay-team }}/${{ inputs.image-name }},enable=${{ inputs.quay-enabled == 'true' && inputs.quay-organization != '' && inputs.quay-team != '' }}
         tags: |
           type=raw,value=latest,enable={{is_default_branch}}
           type=ref,event=branch,enable=${{ contains(github.ref, 'release') }}
           type=semver,pattern={{version}}
           type=sha,enable=${{ inputs.sha-tag }}
+          type=raw,value=${{ inputs.additional-tag }},enable=${{ inputs.additional-tag != '' }}
+
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3

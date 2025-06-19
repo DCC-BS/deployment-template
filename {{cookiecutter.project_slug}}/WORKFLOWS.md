@@ -1,5 +1,7 @@
 # CI/CD Workflows Documentation
 
+> **Note**: This CI/CD setup uses a Docker-first approach. All dependency management, building, and testing happens within Docker containers. No external environment setup (Bun, UV, Node.js, Python) or dependency caching is performed outside of Docker.
+
 This repository contains two main GitHub Actions workflows for building and deploying applications:
 
 ## Workflows
@@ -57,11 +59,11 @@ A reusable composite action that handles common build and test operations:
 - `backend-changed`: Whether backend code was detected
 
 **Features**:
-- Sets up Bun, UV, Node.js, and Python environments
-- Configures dependency caching
 - Runs deployment preparation script
 - Handles version management
 - Provides build readiness checks
+- Clones frontend and backend repositories
+- Prepares projects for Docker builds
 
 ## Repository Structure
 
@@ -96,13 +98,13 @@ The workflows expect your repository to have:
 
 ```
 frontend/           # Frontend application code
-├── package.json    # Bun/Node.js dependencies
-├── bun.lockb       # Bun lock file
+├── package.json    # Dependencies (for reference)
+├── bun.lockb       # Lock file (for reference)
 └── Dockerfile      # Frontend Docker build
 
 backend/            # Backend application code
-├── pyproject.toml  # Python dependencies (UV)
-├── uv.lock         # UV lock file
+├── pyproject.toml  # Dependencies (for reference)
+├── uv.lock         # Lock file (for reference)
 └── Dockerfile      # Backend Docker build
 
 scripts/
@@ -147,7 +149,7 @@ Edit the `on:` sections in the workflow files to change when workflows are trigg
 ### Common Issues
 
 1. **Missing Dockerfiles**: Ensure both `frontend/Dockerfile` and `backend/Dockerfile` exist
-2. **Dependency Files**: Check that `frontend/package.json` and `backend/pyproject.toml` exist
+2. **Repository Configuration**: Check `.env` file for correct repository URLs
 3. **Permissions**: Ensure the repository has proper permissions for the actions
 4. **Secrets**: Verify required secrets are configured in repository settings
 
@@ -158,4 +160,45 @@ Add the following to any workflow step for debug output:
   run: |
     echo "Debug information..."
     env
+```
+
+## Docker-First Approach
+
+This CI/CD setup follows a Docker-first philosophy:
+
+### Benefits
+- **Consistency**: Same environment across local, CI, and production
+- **Simplicity**: No complex dependency management in CI
+- **Isolation**: Each build is completely isolated
+- **Reproducibility**: Builds are deterministic and repeatable
+
+### How It Works
+1. **Repository Cloning**: Frontend and backend repos are cloned during workflow execution
+2. **Docker Builds**: Each project is built using its own Dockerfile
+3. **Dependency Management**: All dependencies (Bun, UV, npm, pip, etc.) are handled within Dockerfiles
+4. **No External Caching**: Dependencies are cached within Docker layers, not externally
+
+### Dockerfile Requirements
+Your frontend and backend repositories must include:
+- `frontend/Dockerfile` - Contains all frontend build logic
+- `backend/Dockerfile` - Contains all backend build logic
+
+Example frontend Dockerfile:
+```dockerfile
+FROM node:18
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+```
+
+Example backend Dockerfile:
+```dockerfile  
+FROM python:3.11
+WORKDIR /app
+COPY requirements.txt ./
+RUN pip install -r requirements.txt
+COPY . .
+RUN python -m pytest
 ```

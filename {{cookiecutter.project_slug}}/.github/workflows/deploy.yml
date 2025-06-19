@@ -41,12 +41,19 @@ jobs:
         version-bump: ${{ github.event.inputs.version_bump || 'patch' }}
         commit-changes: 'true'
         github-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create Git Tag
+      if: success()
+      run: |
+        git tag v${{ steps.build-test.outputs.version }}
+        git push origin v${{ steps.build-test.outputs.version }}
   
-    - name: Dockerfile Build and Push Frontend Container
+    - name: Build and Push Frontend Container
       if: steps.build-test.outputs.frontend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
       with:
         image-name: ${{ env.FRONTEND_IMAGE_NAME }}
+        additional-tag: v${{ steps.build-test.outputs.version }}
         push: true
         quay-enabled: false
         ghcr-enabled: true
@@ -58,11 +65,12 @@ jobs:
         quay-user: ${{ secrets.QUAY_CONTAINER_REGISTRY_USER }}
         quay-password: ${{ secrets.QUAY_CONTAINER_REGISTRY_PASSWORD }}
 
-    - name: Dockerfile Build and Push Backend Container
+    - name: Build and Push Backend Container
       if: steps.build-test.outputs.backend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
       with:
         image-name: ${{ env.BACKEND_IMAGE_NAME }}
+        additional-tag: v${{ steps.build-test.outputs.version }}
         push: true
         quay-enabled: false
         ghcr-enabled: true
@@ -73,16 +81,4 @@ jobs:
         linkyard-password: ${{ secrets.LINKYARD_CONTAINER_REGISTRY_PASSWORD  }}
         quay-user: ${{ secrets.QUAY_CONTAINER_REGISTRY_USER  }}
         quay-password: ${{ secrets.QUAY_CONTAINER_REGISTRY_PASSWORD  }}
-
-    - name: Create Release
-      if: success()
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ steps.build-test.outputs.version }}
-        release_name: Release v${{ steps.build-test.outputs.version }}
-        body_path: release_changelog.md
-        draft: false
-        prerelease: false
 {% endraw %}

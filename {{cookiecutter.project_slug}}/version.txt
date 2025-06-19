@@ -1,1 +1,1 @@
-{{cookiecutter.start_version}}.1
+{{cookiecutter.start_version}}

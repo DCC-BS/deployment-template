@@ -152,101 +152,6 @@ clone_repositories() {
     log_success "Backend repository cloned successfully"
 }
 
-# Setup frontend caching for Bun
-setup_frontend_cache() {
-    log_info "Setting up frontend caching for Bun..."
-    
-    cd ./frontend
-    
-    # Check if bun.lock exists
-    if [ -f "bun.lock" ]; then
-        log_info "Found bun.lock, setting up cache..."
-        
-        # Create cache key based on lockfile hash
-        CACHE_KEY="bun-$(sha256sum bun.lock | cut -d' ' -f1)"
-        log_info "Cache key: $CACHE_KEY"
-        
-        # In GitHub Actions, you would use this cache key
-        # For local development, we'll create a cache directory
-        mkdir -p ~/.bun-cache
-        
-        # Set Bun cache directory
-        export BUN_CACHE_DIR=~/.bun-cache
-        
-        log_success "Bun cache configured"
-    else
-        log_warning "No bun.lock found, skipping Bun cache setup"
-    fi
-    
-    cd ..
-}
-
-# Setup backend caching for UV
-setup_backend_cache() {
-    log_info "Setting up backend caching for UV..."
-    
-    cd ./backend
-    
-    # Check if uv.lock or pyproject.toml exists
-    if [ -f "uv.lock" ] || [ -f "pyproject.toml" ]; then
-        log_info "Found UV project files, setting up cache..."
-        
-        # Create cache key based on lock file or pyproject.toml hash
-        if [ -f "uv.lock" ]; then
-            CACHE_KEY="uv-$(sha256sum uv.lock | cut -d' ' -f1)"
-        else
-            CACHE_KEY="uv-$(sha256sum pyproject.toml | cut -d' ' -f1)"
-        fi
-        
-        log_info "Cache key: $CACHE_KEY"
-        
-        # Set UV cache directory
-        export UV_CACHE_DIR=~/.uv-cache
-        mkdir -p "$UV_CACHE_DIR"
-        
-        log_success "UV cache configured"
-    else
-        log_warning "No uv.lock or pyproject.toml found, skipping UV cache setup"
-    fi
-    
-    cd ..
-}
-
-# Install dependencies with caching
-install_dependencies() {
-    log_info "Installing dependencies..."
-    
-    # Install frontend dependencies
-    if [ -d "./frontend" ]; then
-        log_info "Installing frontend dependencies with Bun..."
-        cd ./frontend
-        
-        if command -v bun &> /dev/null; then
-            bun install
-            log_success "Frontend dependencies installed"
-        else
-            log_warning "Bun not found, skipping frontend dependency installation"
-        fi
-        
-        cd ..
-    fi
-    
-    # Install backend dependencies
-    if [ -d "./backend" ]; then
-        log_info "Installing backend dependencies with UV..."
-        cd ./backend
-        
-        if command -v uv &> /dev/null; then
-            uv sync
-            log_success "Backend dependencies installed"
-        else
-            log_warning "UV not found, skipping backend dependency installation"
-        fi
-        
-        cd ..
-    fi
-}
-
 # Prepare projects for Docker build
 prepare_projects() {
     log_info "Preparing projects for Docker build..."
@@ -563,9 +468,6 @@ main() {
     validate_version_bump
     manage_version
     clone_repositories
-    setup_frontend_cache
-    setup_backend_cache
-    install_dependencies
     prepare_projects
     commit_version_update
     output_changelog_for_release

@@ -1,6 +1,6 @@
 # Deployment Preparation Script
 
-This repository contains a comprehensive deployment preparation script designed for GitHub CI that handles cloning repositories, caching dependencies, version management, and preparing projects for Docker builds.
+This repository contains a comprehensive deployment preparation script designed for GitHub CI that handles cloning repositories, version management, and preparing projects for Docker builds.
 
 ## Features
 
@@ -20,21 +20,14 @@ Create a new project using this template with [Cookiecutter](https://www.cookiec
 
 ```bash
 cookiecutter https://github.com/DCC-BS/deployment-template
-```
 
-### Environment Variables
-
-Set these environment variables to customize repository URLs:
-
-```bash
-export FRONTEND_REPO_URL="https://github.com/your-org/your-frontend-repo.git"
-export BACKEND_REPO_URL="https://github.com/your-org/your-backend-repo.git"
-export GITHUB_TOKEN="your-github-token"  # Required for pushing changes
+# or with uv
+uvx cookiecutter https://github.com/DCC-BS/deployment-template
 ```
 
 ### GitHub Actions Usage
 
-The included workflow file (`.github/workflows/deploy.yml`) demonstrates how to use this script in GitHub CI:
+The included workflow file (`.github/workflows/deploy.yml`) to run this script in GitHub CI:
 
 1. **Manual Trigger**: Use `workflow_dispatch` to manually trigger deployment preparation
 2. **Input Parameters**: Choose version bump type and repository URLs
@@ -45,23 +38,12 @@ The included workflow file (`.github/workflows/deploy.yml`) demonstrates how to 
 
 - `GITHUB_TOKEN`: Automatically provided by GitHub Actions (no setup required)
 
-#### Optional Repository Secrets
-
-If your repositories are private, you may need to set up additional authentication:
-
-- `FRONTEND_REPO_TOKEN`: Personal access token for frontend repository
-- `BACKEND_REPO_TOKEN`: Personal access token for backend repository
-
 ## Script Components
 
 ### 1. Repository Cloning
 - Clones frontend repository to `./frontend`
 - Clones backend repository to `./backend`
 - Removes existing directories before cloning
-
-### 2. Dependency Caching
-
-**Note**: This deployment template uses a Docker-first approach. Dependencies are managed and built within Docker containers during the build process. No pre-caching of Bun or UV dependencies is performed.
 
 #### Frontend Dependencies
 - Managed within `frontend/Dockerfile`
@@ -84,30 +66,6 @@ If your repositories are private, you may need to set up additional authenticati
 - Prepares projects for Docker build process
 - All building happens within Docker containers
 
-## File Structure
-
-```
-text-mate-deploy/
-├── scripts/
-│   └── prepare-deployment.sh   # Main deployment preparation script
-├── .github/
-│   └── workflows/
-│       └── deploy.yml          # GitHub Actions workflow
-├── version.txt                 # Version file (created automatically)
-└── README.md                  # This file
-```
-
-## Prerequisites
-
-### Local Development
-- Git
-- Bash shell
-- Docker (for building and testing containers)
-
-### GitHub Actions
-The following tools are used but handled within Docker containers:
-- Docker (via docker/setup-buildx-action)
-- All other dependencies managed within Dockerfiles
 
 ## Customization
 
@@ -172,14 +130,6 @@ For verbose output, you can add debug flags to the script:
 # Add at the top of prepare-deployment.sh
 set -x  # Enable debug mode
 ```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test the script locally
-5. Submit a pull request
 
 ## License
 

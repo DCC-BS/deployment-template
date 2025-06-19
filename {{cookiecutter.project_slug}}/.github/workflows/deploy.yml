@@ -1,4 +1,4 @@
-name: Prepare and Deploy Application
+name: Deploy Application
 
 on:
   workflow_dispatch:
@@ -25,6 +25,7 @@ jobs:
     permissions:
       contents: write  # Required to push version updates
       packages: write  # Required to push Docker images to GHCR
+      checks: write
     
     steps:
     - name: Checkout repository

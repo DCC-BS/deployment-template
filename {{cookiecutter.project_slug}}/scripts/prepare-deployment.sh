@@ -158,12 +158,12 @@ setup_frontend_cache() {
     
     cd ./frontend
     
-    # Check if bun.lockb exists
-    if [ -f "bun.lockb" ]; then
-        log_info "Found bun.lockb, setting up cache..."
+    # Check if bun.lock exists
+    if [ -f "bun.lock" ]; then
+        log_info "Found bun.lock, setting up cache..."
         
         # Create cache key based on lockfile hash
-        CACHE_KEY="bun-$(sha256sum bun.lockb | cut -d' ' -f1)"
+        CACHE_KEY="bun-$(sha256sum bun.lock | cut -d' ' -f1)"
         log_info "Cache key: $CACHE_KEY"
         
         # In GitHub Actions, you would use this cache key
@@ -175,7 +175,7 @@ setup_frontend_cache() {
         
         log_success "Bun cache configured"
     else
-        log_warning "No bun.lockb found, skipping Bun cache setup"
+        log_warning "No bun.lock found, skipping Bun cache setup"
     fi
     
     cd ..

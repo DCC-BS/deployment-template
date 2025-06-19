@@ -58,7 +58,7 @@ jobs:
         
         echo "Docker build step completed"
   
-    - name: Dockerfile Build and Push {{cookiecutter.frontend_image_name}} Container
+    - name: Dockerfile Build and Push Frontend Container
       if: steps.build-test.outputs.frontend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
       with:
@@ -74,7 +74,7 @@ jobs:
         quay-user: ${{ secrets.QUAY_CONTAINER_REGISTRY_USER }}
         quay-password: ${{ secrets.QUAY_CONTAINER_REGISTRY_PASSWORD }}
 
-    - name: Dockerfile Build and Push {{cookiecutter.backend_image_name}} Container
+    - name: Dockerfile Build and Push Backend Container
       if: steps.build-test.outputs.backend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
       with:

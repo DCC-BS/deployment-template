@@ -24,6 +24,7 @@ jobs:
     
     permissions:
       contents: write  # Required to push version updates
+      packages: write  # Required to push Docker images to GHCR
     
     steps:
     - name: Checkout repository

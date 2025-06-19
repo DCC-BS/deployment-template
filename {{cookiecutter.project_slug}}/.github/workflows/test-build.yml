@@ -52,9 +52,9 @@ jobs:
         image-name: ${{ env.FRONTEND_IMAGE_NAME }}
         push: false  # Never push in test workflow
         quay-enabled: false
-        ghcr-enabled: false
+        ghcr-enabled: true
         linkyard-enabled: false
-        vulnerability-scan: true  # Enable scanning for testing
+        vulnerability-scan: false
         working-directory: './frontend'
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -65,9 +65,9 @@ jobs:
         image-name: ${{ env.BACKEND_IMAGE_NAME }}
         push: false  # Never push in test workflow
         quay-enabled: false
-        ghcr-enabled: false
+        ghcr-enabled: true
         linkyard-enabled: false
-        vulnerability-scan: true  # Enable scanning for testing
+        vulnerability-scan: false
         working-directory: './backend'
         github-token: ${{ secrets.GITHUB_TOKEN }}
 

@@ -17,6 +17,12 @@ on:
   push:
     branches: [ develop ]
 
+env:
+  BACKEND_IMAGE_NAME: {{ cookiecutter.backend_image_name }}
+  FRONTEND_IMAGE_NAME: {{ cookiecutter.frontend_image_name }}
+  
+
+{% raw %}
 jobs:
   test-build:
     runs-on: ubuntu-latest
@@ -28,54 +34,54 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        token: ${{ {{ secrets.GITHUB_TOKEN }} }}
+        token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 0
 
     - name: Build and Test (No Commit)
       id: build-test
       uses: ./.github/actions/build-and-test
       with:
-        version-bump: ${{ {{ github.event.inputs.version_bump || 'patch' }} }}
+        version-bump: ${{ github.event.inputs.version_bump || 'patch' }}
         commit-changes: 'false'
-        github-token: ${{ {{ secrets.GITHUB_TOKEN }} }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Dockerfile Build Test {{cookiecutter.frontend_image_name}} Container
+    - name: Dockerfile Build Test ${{ FRONTEND_IMAGE_NAME }} Container
       if: steps.build-test.outputs.frontend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
       with:
-        image-name: '{{cookiecutter.frontend_image_name}}'
+        image-name: ${{ FRONTEND_IMAGE_NAME }}
         push: false  # Never push in test workflow
         quay-enabled: false
         ghcr-enabled: false
         linkyard-enabled: false
         vulnerability-scan: true  # Enable scanning for testing
         working-directory: './frontend'
-        github-token: ${{ {{ secrets.GITHUB_TOKEN }} }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Dockerfile Build Test {{cookiecutter.backend_image_name}} Container
+    - name: Dockerfile Build Test ${{ BACKEND_IMAGE_NAME }} Container
       if: steps.build-test.outputs.backend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
       with:
-        image-name: '{{cookiecutter.backend_image_name}}'
+        image-name: ${{ BACKEND_IMAGE_NAME }}
         push: false  # Never push in test workflow
         quay-enabled: false
         ghcr-enabled: false
         linkyard-enabled: false
         vulnerability-scan: true  # Enable scanning for testing
         working-directory: './backend'
-        github-token: ${{ {{ secrets.GITHUB_TOKEN }} }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Generate Test Report
       if: always()
       run: |
         echo "=== Test Build Report ==="
         echo "Workflow: Test Build Without Deploy"
-        echo "Trigger: ${{ {{ github.event_name }} }}"
-        echo "Branch: ${{ {{ github.ref_name }} }}"
-        echo "Commit: ${{ {{ github.sha }} }}"
-        echo "Version (test): ${{ {{ steps.build-test.outputs.version }} }}"
-        echo "Frontend changed: ${{ {{ steps.build-test.outputs.frontend-changed }} }}"
-        echo "Backend changed: ${{ {{ steps.build-test.outputs.backend-changed }} }}"
+        echo "Trigger: ${{ github.event_name }}"
+        echo "Branch: ${{ github.ref_name }}"
+        echo "Commit: ${{ github.sha }}"
+        echo "Version (test): ${{ steps.build-test.outputs.version }}"
+        echo "Frontend changed: ${{ steps.build-test.outputs.frontend-changed }}"
+        echo "Backend changed: ${{ steps.build-test.outputs.backend-changed }}"
         echo ""
         echo "Status:"
         echo "- ✓ Dependencies installed"
@@ -98,3 +104,4 @@ jobs:
           frontend/
           backend/
         retention-days: 7
+{% endraw %}

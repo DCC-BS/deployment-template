@@ -17,13 +17,13 @@ inputs:
 outputs:
   version:
     description: "The new version that was generated"
-    value: ${{ {{ steps.get-version.outputs.version }} }}
+    value: ${{ steps.get-version.outputs.version }}
   frontend-changed:
     description: "Whether frontend code was changed"
-    value: ${{ {{ steps.check-changes.outputs.frontend-changed }} }}
+    value: ${{ steps.check-changes.outputs.frontend-changed }}
   backend-changed:
     description: "Whether backend code was changed"
-    value: ${{ {{ steps.check-changes.outputs.backend-changed }} }}
+    value: ${{ steps.check-changes.outputs.backend-changed }}
 
 runs:
   using: "composite"
@@ -52,20 +52,20 @@ runs:
       uses: actions/cache@v4
       with:
         path: ~/.bun-cache
-        key: bun-${{ {{ runner.os }} }}-${{ {{ hashFiles('frontend/bun.lockb') }} }}
+        key: bun-${{ runner.os }}-${{ hashFiles('frontend/bun.lockb') }}
         restore-keys: |
-          bun-${{ {{ runner.os }} }}-
+          bun-${{ runner.os }}-
 
     - name: Cache UV dependencies
       uses: actions/cache@v4
       with:
         path: ~/.uv-cache
-        key: uv-${{ {{ runner.os }} }}-${{ {{ hashFiles('backend/uv.lock', 'backend/pyproject.toml') }} }}
+        key: uv-${{ runner.os }}-${{ hashFiles('backend/uv.lock', 'backend/pyproject.toml') }}
         restore-keys: |
-          uv-${{ {{ runner.os }} }}-
+          uv-${{ runner.os }}-
 
     - name: Configure Git
-      if: ${{ {{ inputs.commit-changes == 'true' }} }}
+      if: ${{ inputs.commit-changes == 'true' }}
       shell: bash
       run: |
         git config --global user.name "github-actions[bot]"
@@ -74,14 +74,14 @@ runs:
     - name: Run deployment preparation script
       shell: bash
       env:
-        GITHUB_TOKEN: ${{ inputs.github-token }} }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
-        if [ "${{ inputs.commit-changes }} }}" == "false" ]; then
+        if [ "${{ inputs.commit-changes }}" == "false" ]; then
           # Run in test mode (no commits)
-          ./scripts/prepare-deployment.sh ${{ inputs.version-bump }} }} --test
+          ./scripts/prepare-deployment.sh ${{ inputs.version-bump }} --test
         else
           # Run in deploy mode (with commits)
-          ./scripts/prepare-deployment.sh ${{ inputs.version-bump }} }}
+          ./scripts/prepare-deployment.sh ${{ inputs.version-bump }}
         fi
 
     - name: Get version

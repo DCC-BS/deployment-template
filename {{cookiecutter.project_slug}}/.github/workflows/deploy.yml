@@ -13,6 +13,11 @@ on:
         - minor
         - major
 
+env:
+  BACKEND_IMAGE_NAME: {{ cookiecutter.backend_image_name }}
+  FRONTEND_IMAGE_NAME: {{ cookiecutter.frontend_image_name }}
+
+{% raw %}
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -31,9 +36,9 @@ jobs:
       id: build-test
       uses: ./.github/actions/build-and-test
       with:
-        version-bump: ${{ {{ github.event.inputs.version_bump || 'patch' }} }}
+        version-bump: ${{ github.event.inputs.version_bump || 'patch' }}
         commit-changes: 'true'
-        github-token: ${{ {{ secrets.GITHUB_TOKEN }} }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Build Docker images
       run: |
@@ -57,42 +62,43 @@ jobs:
       if: steps.build-test.outputs.frontend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
       with:
-        image-name: '{{cookiecutter.frontend_image_name}}'
+        image-name: ${{ FRONTEND_IMAGE_NAME }}
         push: true
         quay-enabled: false
         ghcr-enabled: true
         vulnerability-scan: false
         working-directory: './frontend'
-        github-token: ${{ {{ secrets.GITHUB_TOKEN }} }}
-        linkyard-user: ${{ {{ secrets.LINKYARD_CONTAINER_REGISTRY_USER }} }}
-        linkyard-password: ${{ {{ secrets.LINKYARD_CONTAINER_REGISTRY_PASSWORD }} }}
-        quay-user: ${{ {{ secrets.QUAY_CONTAINER_REGISTRY_USER }} }}
-        quay-password: ${{ {{ secrets.QUAY_CONTAINER_REGISTRY_PASSWORD }} }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        linkyard-user: ${{ secrets.LINKYARD_CONTAINER_REGISTRY_USER }}
+        linkyard-password: ${{ secrets.LINKYARD_CONTAINER_REGISTRY_PASSWORD }}
+        quay-user: ${{ secrets.QUAY_CONTAINER_REGISTRY_USER }}
+        quay-password: ${{ secrets.QUAY_CONTAINER_REGISTRY_PASSWORD }}
 
     - name: Dockerfile Build and Push {{cookiecutter.backend_image_name}} Container
       if: steps.build-test.outputs.backend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
       with:
-        image-name: '{{cookiecutter.backend_image_name}}'
+        image-name: ${{ BACKEND_IMAGE_NAME }}
         push: true
         quay-enabled: false
         ghcr-enabled: true
         vulnerability-scan: false
         working-directory: './backend'
-        github-token: ${{ {{ secrets.GITHUB_TOKEN  }} }}
-        linkyard-user: ${{ {{ secrets.LINKYARD_CONTAINER_REGISTRY_USER  }} }}
-        linkyard-password: ${{ {{ secrets.LINKYARD_CONTAINER_REGISTRY_PASSWORD  }} }}
-        quay-user: ${{ {{ secrets.QUAY_CONTAINER_REGISTRY_USER  }} }}
-        quay-password: ${{ {{ secrets.QUAY_CONTAINER_REGISTRY_PASSWORD  }} }}
+        github-token: ${{ secrets.GITHUB_TOKEN  }}
+        linkyard-user: ${{ secrets.LINKYARD_CONTAINER_REGISTRY_USER  }}
+        linkyard-password: ${{ secrets.LINKYARD_CONTAINER_REGISTRY_PASSWORD  }}
+        quay-user: ${{ secrets.QUAY_CONTAINER_REGISTRY_USER  }}
+        quay-password: ${{ secrets.QUAY_CONTAINER_REGISTRY_PASSWORD  }}
 
     - name: Create Release
       if: success()
       uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{ {{ secrets.GITHUB_TOKEN }} }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ {{ steps.build-test.outputs.version }} }}
-        release_name: Release v${{ {{ steps.build-test.outputs.version }} }}
+        tag_name: v${{ steps.build-test.outputs.version }}
+        release_name: Release v${{ steps.build-test.outputs.version }}
         body_path: release_changelog.md
         draft: false
         prerelease: false
+{% endraw %}

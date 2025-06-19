@@ -40,24 +40,6 @@ jobs:
         version-bump: ${{ github.event.inputs.version_bump || 'patch' }}
         commit-changes: 'true'
         github-token: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Build Docker images
-      run: |
-        echo "Building Docker images..."
-        VERSION=$(cat version.txt)
-        echo "Building with version: $VERSION"
-        
-        if [ -d "frontend" ] && [ -f "frontend/Dockerfile" ]; then
-          echo "Building frontend image..."
-          # docker build -t frontend:$VERSION ./frontend
-        fi
-        
-        if [ -d "backend" ] && [ -f "backend/Dockerfile" ]; then
-          echo "Building backend image..."
-          # docker build -t backend:$VERSION ./backend
-        fi
-        
-        echo "Docker build step completed"
   
     - name: Dockerfile Build and Push Frontend Container
       if: steps.build-test.outputs.frontend-changed == 'true'

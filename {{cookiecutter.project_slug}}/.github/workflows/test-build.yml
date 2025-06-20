@@ -18,18 +18,19 @@ on:
     branches: [ develop ]
 
 env:
-  BACKEND_IMAGE_NAME: {{ cookiecutter.backend_image_name }}
-  FRONTEND_IMAGE_NAME: {{ cookiecutter.frontend_image_name }}
-
   {%- if cookiecutter.docker_registry == "ghcr" -%}
+  {% raw %}
   GITHUB_ACTOR: ${{ github.actor }}
   GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  {% endraw %}
   {%- elif cookiecutter.docker_registry == "quay.io" -%}
+  {% raw %}
   QUAY_USER: ${{ secrets.QUAY_DMS_CONTAINER_REGISTRY_USER }}
   QUAY_PASSWORD: ${{ secrets.QUAY_CONTAINER_REGISTRY_PASSWORD }}
   QUAY_ORGANIZATION: your_organzatin
   QUAY_TEAM: your_team
+  {% endraw %}
   {%- endif -%}
   
 

@@ -5,8 +5,7 @@
     "start_version": "0.0.1",
     "docker_registry": ["ghcr", "quay.io"],
     "_copy_without_render": [
-        "scripts/test-local-setup.sh",
-        "scripts/prepare-deployment.sh",
+        "scripts/*",
         ".github/actions/*"
     ]
 }

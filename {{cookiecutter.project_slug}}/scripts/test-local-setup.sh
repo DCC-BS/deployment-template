@@ -1,41 +1,10 @@
 #!/bin/bash
 
-# Local testing script for de    # Check for Docker (recommended for testing builds)
-    if ! command -v docker &> /dev/null; then
-        log_warning "Docker not found - Docker builds will be skipped"
-    else
-        log_success "Docker found"
-    fi
-    
-    # Note: Bun and UV are not required locally as builds happen in Docker containers
-    log_info "Note: Dependency management (Bun, UV, etc.) handled within Docker containers"
+# Local testing script for deployment preparation
 # This script helps you test the deployment process locally before running it in CI/CD
 
-set -e
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Logging functions
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+# Source script utilities
+source "$(dirname "$0")/script-utils.sh"
 
 # Check if required tools are installed
 check_dependencies() {
@@ -44,26 +13,26 @@ check_dependencies() {
     local missing_deps=()
     
     # Check for Git
-    if ! command -v git &> /dev/null; then
+    if ! validate_command_exists git "Git" >/dev/null 2>&1; then
         missing_deps+=("git")
     fi
     
     # Check for Docker (optional but recommended)
-    if ! command -v docker &> /dev/null; then
+    if ! validate_command_exists docker "Docker" >/dev/null 2>&1; then
         log_warning "Docker not found - Docker builds will be skipped"
     else
         log_success "Docker found"
     fi
     
     # Check for Bun (optional)
-    if ! command -v bun &> /dev/null; then
+    if ! validate_command_exists bun "Bun" >/dev/null 2>&1; then
         log_warning "Bun not found - frontend builds may use npm/yarn fallback"
     else
         log_success "Bun found"
     fi
     
     # Check for UV (optional)
-    if ! command -v uv &> /dev/null; then
+    if ! validate_command_exists uv "UV" >/dev/null 2>&1; then
         log_warning "UV not found - backend builds may use pip fallback"
     else
         log_success "UV found"
@@ -83,36 +52,21 @@ test_repo_structure() {
     log_info "Testing repository structure..."
     
     # Check for deployment script
-    if [ ! -f "scripts/prepare-deployment.sh" ]; then
-        log_error "Missing scripts/prepare-deployment.sh"
-        return 1
-    fi
+    validate_file_exists "scripts/prepare-deployment.sh" "Deployment script" || return 1
     log_success "Deployment script found"
     
     # Check for workflow files
-    if [ ! -f ".github/workflows/deploy.yml" ]; then
-        log_error "Missing .github/workflows/deploy.yml"
-        return 1
-    fi
+    validate_file_exists ".github/workflows/deploy.yml" "Deploy workflow" || return 1
     log_success "Deploy workflow found"
     
-    if [ ! -f ".github/workflows/test-build.yml" ]; then
-        log_error "Missing .github/workflows/test-build.yml"
-        return 1
-    fi
+    validate_file_exists ".github/workflows/test-build.yml" "Test build workflow" || return 1
     log_success "Test build workflow found"
     
     # Check for reusable action
-    if [ ! -f ".github/actions/build-and-test/action.yml" ]; then
-        log_error "Missing .github/actions/build-and-test/action.yml"
-        return 1
-    fi
+    validate_file_exists ".github/actions/build-and-test/action.yml" "Build and test action" || return 1
     log_success "Build and test action found"
     
-    if [ ! -f ".github/actions/dockerfile-build/action.yml" ]; then
-        log_error "Missing .github/actions/dockerfile-build/action.yml"
-        return 1
-    fi
+    validate_file_exists ".github/actions/dockerfile-build/action.yml" "Dockerfile build action" || return 1
     log_success "Dockerfile build action found"
     
     log_success "Repository structure is valid"
@@ -124,7 +78,7 @@ test_environment() {
     
     if [ -f ".env" ]; then
         log_info "Found .env file"
-        source .env
+        source_env_file
         
         if [ -n "${FRONTEND_REPO_URL:-}" ]; then
             log_success "Frontend repository URL configured: $FRONTEND_REPO_URL"
@@ -225,16 +179,8 @@ EOF
 
 # Test Docker builds (if Docker is available)
 test_docker_builds() {
-    if ! command -v docker &> /dev/null; then
-        log_warning "Skipping Docker tests - Docker not available"
-        return 0
-    fi
-    
-    log_info "Testing Docker functionality..."
-    
-    # Test Docker daemon
-    if ! docker info &> /dev/null; then
-        log_warning "Docker daemon not running - skipping Docker tests"
+    if ! check_docker_available >/dev/null 2>&1; then
+        log_warning "Skipping Docker tests - Docker not available or not running"
         return 0
     fi
     
@@ -264,8 +210,8 @@ generate_report() {
 ### Dependencies
 - Git: $(command -v git >/dev/null && echo "✅ Available" || echo "❌ Missing")
 - Docker: $(command -v docker >/dev/null && echo "✅ Available" || echo "⚠️ Not available")
-
-**Note**: Bun and UV are not required locally as all dependency management happens within Docker containers.
+- Bun: $(command -v bun >/dev/null && echo "✅ Available" || echo "⚠️ Not available")
+- UV: $(command -v uv >/dev/null && echo "✅ Available" || echo "⚠️ Not available")
 
 ### Repository Structure
 - Deployment script: $([ -f "scripts/prepare-deployment.sh" ] && echo "✅ Found" || echo "❌ Missing")
@@ -281,11 +227,10 @@ generate_report() {
 ## Recommendations
 
 1. **If Docker is not available**: Install Docker for local testing of container builds
-2. **Create .env file**: Configure FRONTEND_REPO_URL and BACKEND_REPO_URL  
-3. **Test in CI**: Run the test-build workflow to validate the full pipeline
-4. **Customize Dockerfiles**: Ensure your frontend and backend repositories have proper Dockerfiles
-
-**Note**: This template uses a Docker-first approach. All dependency management (Bun, UV, npm, pip, etc.) is handled within the respective Dockerfiles.
+2. **If Bun is not available**: Install Bun for faster frontend builds
+3. **If UV is not available**: Install UV for faster Python dependency management
+4. **Create .env file**: Configure FRONTEND_REPO_URL and BACKEND_REPO_URL
+5. **Test in CI**: Run the test-build workflow to validate the full pipeline
 
 ## Next Steps
 

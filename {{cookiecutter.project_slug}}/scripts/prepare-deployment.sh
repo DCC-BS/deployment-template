@@ -8,12 +8,11 @@
 #   - Second argument (optional): Mode flag
 #     --test or --no-commit: Run in test mode (no commits, no pushes)
 
-set -e  # Exit on any error
+# Source script utilities
+source "$(dirname "$0")/script-utils.sh"
 
 # Source .env file if it exists
-if [ -f ".env" ]; then
-    source .env
-fi
+source_env_file
 
 # Configuration - Customize these URLs for your repos
 FRONTEND_REPO_URL="${FRONTEND_REPO_URL:-https://github.com/your-org/frontend-repo.git}"
@@ -29,30 +28,7 @@ if [[ "$MODE_FLAG" == "--test" || "$MODE_FLAG" == "--no-commit" ]]; then
     TEST_MODE=true
 fi
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Logging functions
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
+# Test mode logging function
 log_test() {
     if [ "$TEST_MODE" == "true" ]; then
         echo -e "${YELLOW}[TEST MODE]${NC} $1"
@@ -88,47 +64,9 @@ manage_version() {
     
     log_info "Current version: $CURRENT_VERSION"
     
-    # Parse version components and validate format
-    IFS='.' read -r major minor patch extra <<< "$CURRENT_VERSION"
+    # Use utility function to bump version
+    NEW_VERSION=$(bump_version "$CURRENT_VERSION" "$VERSION_BUMP")
     
-    # Validate and normalize version components
-    if [[ ! "$major" =~ ^[0-9]+$ ]]; then
-        log_warning "Invalid major version '$major', defaulting to 1"
-        major=1
-    fi
-    
-    if [[ ! "$minor" =~ ^[0-9]+$ ]]; then
-        log_warning "Invalid minor version '$minor', defaulting to 0"
-        minor=0
-    fi
-    
-    if [[ ! "$patch" =~ ^[0-9]+$ ]]; then
-        log_warning "Invalid patch version '$patch', defaulting to 0"
-        patch=0
-    fi
-    
-    # Warn if there are extra version components
-    if [[ -n "$extra" ]]; then
-        log_warning "Version has extra components beyond major.minor.patch, normalizing to $major.$minor.$patch"
-    fi
-    
-    # Bump version on parameter
-    case "$VERSION_BUMP" in
-        "major")
-            major=$((major + 1))
-            minor=0
-            patch=0
-            ;;
-        "minor")
-            minor=$((minor + 1))
-            patch=0
-            ;;
-        "patch")
-            patch=$((patch + 1))
-            ;;
-    esac
-    
-    NEW_VERSION="$major.$minor.$patch"
     echo "$NEW_VERSION" > "$VERSION_FILE"
     log_success "Version updated to: $NEW_VERSION"
 }
@@ -213,22 +151,9 @@ update_changelog() {
     FRONTEND_WEB_URL=""
     
     if [ -d "./frontend" ]; then
-        cd ./frontend
-        FRONTEND_COMMIT_HASH=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
-        FRONTEND_COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s' 2>/dev/null || echo "No commit message")
-        
-        # Get frontend repo web URL
-        FRONTEND_REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
-        if [[ $FRONTEND_REMOTE_URL =~ git@github\.com:(.+)\.git ]]; then
-            FRONTEND_REPO_PATH="${BASH_REMATCH[1]}"
-            FRONTEND_WEB_URL="https://github.com/$FRONTEND_REPO_PATH"
-        elif [[ $FRONTEND_REMOTE_URL =~ https://github\.com/(.+)\.git ]]; then
-            FRONTEND_REPO_PATH="${BASH_REMATCH[1]}"
-            FRONTEND_WEB_URL="https://github.com/$FRONTEND_REPO_PATH"
-        else
-            FRONTEND_WEB_URL="$FRONTEND_REMOTE_URL"
-        fi
-        cd ..
+        FRONTEND_COMMIT_HASH=$(cd ./frontend && git rev-parse HEAD 2>/dev/null || echo "unknown")
+        FRONTEND_COMMIT_MESSAGE=$(cd ./frontend && get_commit_message)
+        FRONTEND_WEB_URL=$(get_repo_web_url "./frontend")
     fi
     
     # Get backend commit information
@@ -237,22 +162,9 @@ update_changelog() {
     BACKEND_WEB_URL=""
     
     if [ -d "./backend" ]; then
-        cd ./backend
-        BACKEND_COMMIT_HASH=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
-        BACKEND_COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s' 2>/dev/null || echo "No commit message")
-        
-        # Get backend repo web URL
-        BACKEND_REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
-        if [[ $BACKEND_REMOTE_URL =~ git@github\.com:(.+)\.git ]]; then
-            BACKEND_REPO_PATH="${BASH_REMATCH[1]}"
-            BACKEND_WEB_URL="https://github.com/$BACKEND_REPO_PATH"
-        elif [[ $BACKEND_REMOTE_URL =~ https://github\.com/(.+)\.git ]]; then
-            BACKEND_REPO_PATH="${BASH_REMATCH[1]}"
-            BACKEND_WEB_URL="https://github.com/$BACKEND_REPO_PATH"
-        else
-            BACKEND_WEB_URL="$BACKEND_REMOTE_URL"
-        fi
-        cd ..
+        BACKEND_COMMIT_HASH=$(cd ./backend && git rev-parse HEAD 2>/dev/null || echo "unknown")
+        BACKEND_COMMIT_MESSAGE=$(cd ./backend && get_commit_message)
+        BACKEND_WEB_URL=$(get_repo_web_url "./backend")
     fi
     
     # Create changelog entry with frontend and backend commit info
@@ -330,22 +242,9 @@ output_changelog_for_release() {
     FRONTEND_WEB_URL=""
     
     if [ -d "./frontend" ]; then
-        cd ./frontend
-        FRONTEND_COMMIT_HASH=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
-        FRONTEND_COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s' 2>/dev/null || echo "No commit message")
-        
-        # Get frontend repo web URL
-        FRONTEND_REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
-        if [[ $FRONTEND_REMOTE_URL =~ git@github\.com:(.+)\.git ]]; then
-            FRONTEND_REPO_PATH="${BASH_REMATCH[1]}"
-            FRONTEND_WEB_URL="https://github.com/$FRONTEND_REPO_PATH"
-        elif [[ $FRONTEND_REMOTE_URL =~ https://github\.com/(.+)\.git ]]; then
-            FRONTEND_REPO_PATH="${BASH_REMATCH[1]}"
-            FRONTEND_WEB_URL="https://github.com/$FRONTEND_REPO_PATH"
-        else
-            FRONTEND_WEB_URL="$FRONTEND_REMOTE_URL"
-        fi
-        cd ..
+        FRONTEND_COMMIT_HASH=$(cd ./frontend && git rev-parse HEAD 2>/dev/null || echo "unknown")
+        FRONTEND_COMMIT_MESSAGE=$(cd ./frontend && get_commit_message)
+        FRONTEND_WEB_URL=$(get_repo_web_url "./frontend")
     fi
     
     # Get backend commit information
@@ -354,22 +253,9 @@ output_changelog_for_release() {
     BACKEND_WEB_URL=""
     
     if [ -d "./backend" ]; then
-        cd ./backend
-        BACKEND_COMMIT_HASH=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
-        BACKEND_COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s' 2>/dev/null || echo "No commit message")
-        
-        # Get backend repo web URL
-        BACKEND_REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
-        if [[ $BACKEND_REMOTE_URL =~ git@github\.com:(.+)\.git ]]; then
-            BACKEND_REPO_PATH="${BASH_REMATCH[1]}"
-            BACKEND_WEB_URL="https://github.com/$BACKEND_REPO_PATH"
-        elif [[ $BACKEND_REMOTE_URL =~ https://github\.com/(.+)\.git ]]; then
-            BACKEND_REPO_PATH="${BASH_REMATCH[1]}"
-            BACKEND_WEB_URL="https://github.com/$BACKEND_REPO_PATH"
-        else
-            BACKEND_WEB_URL="$BACKEND_REMOTE_URL"
-        fi
-        cd ..
+        BACKEND_COMMIT_HASH=$(cd ./backend && git rev-parse HEAD 2>/dev/null || echo "unknown")
+        BACKEND_COMMIT_MESSAGE=$(cd ./backend && get_commit_message)
+        BACKEND_WEB_URL=$(get_repo_web_url "./backend")
     fi
     
     # Create changelog for GitHub release

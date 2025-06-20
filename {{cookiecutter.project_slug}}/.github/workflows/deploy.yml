@@ -17,6 +17,17 @@ env:
   BACKEND_IMAGE_NAME: {{ cookiecutter.backend_image_name }}
   FRONTEND_IMAGE_NAME: {{ cookiecutter.frontend_image_name }}
 
+  {%- if cookiecutter.docker_registry == "ghcr" -%}
+  GITHUB_ACTOR: ${{ github.actor }}
+  GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  {%- elif cookiecutter.docker_registry == "quay.io" -%}
+  QUAY_USER: ${{ secrets.QUAY_DMS_CONTAINER_REGISTRY_USER }}
+  QUAY_PASSWORD: ${{ secrets.QUAY_CONTAINER_REGISTRY_PASSWORD }}
+  QUAY_ORGANIZATION: your_organzatin
+  QUAY_TEAM: your_team
+  {%- endif -%}
+
 {% raw %}
 jobs:
   deploy:
@@ -51,34 +62,17 @@ jobs:
     - name: Build and Push Frontend Container
       if: steps.build-test.outputs.frontend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
-      with:
-        image-name: ${{ env.FRONTEND_IMAGE_NAME }}
-        additional-tag: v${{ steps.build-test.outputs.version }}
-        push: true
-        quay-enabled: false
-        ghcr-enabled: true
-        vulnerability-scan: false
-        working-directory: './frontend'
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        linkyard-user: ${{ secrets.LINKYARD_CONTAINER_REGISTRY_USER }}
-        linkyard-password: ${{ secrets.LINKYARD_CONTAINER_REGISTRY_PASSWORD }}
-        quay-user: ${{ secrets.QUAY_CONTAINER_REGISTRY_USER }}
-        quay-password: ${{ secrets.QUAY_CONTAINER_REGISTRY_PASSWORD }}
+      run: ./scripts/push-to-ghcr.sh
+      env:
+        IMAGE_NAME: ${{ env.FRONTEND_IMAGE_NAME }}
+        ADDITIONAL_TAG: v${{ steps.build-test.outputs.version }}
+        WORKING_DIR: ./frontend
 
     - name: Build and Push Backend Container
       if: steps.build-test.outputs.backend-changed == 'true'
       uses: ./.github/actions/dockerfile-build
-      with:
-        image-name: ${{ env.BACKEND_IMAGE_NAME }}
-        additional-tag: v${{ steps.build-test.outputs.version }}
-        push: true
-        quay-enabled: false
-        ghcr-enabled: true
-        vulnerability-scan: false
-        working-directory: './backend'
-        github-token: ${{ secrets.GITHUB_TOKEN  }}
-        linkyard-user: ${{ secrets.LINKYARD_CONTAINER_REGISTRY_USER  }}
-        linkyard-password: ${{ secrets.LINKYARD_CONTAINER_REGISTRY_PASSWORD  }}
-        quay-user: ${{ secrets.QUAY_CONTAINER_REGISTRY_USER  }}
-        quay-password: ${{ secrets.QUAY_CONTAINER_REGISTRY_PASSWORD  }}
+      env:
+        IMAGE_NAME: ${{ env.BACKEND_IMAGE_NAME }}
+        ADDITIONAL_TAG: v${{ steps.build-test.outputs.version }}
+        WORKING_DIR: ./backend
 {% endraw %}

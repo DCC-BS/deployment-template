@@ -20,6 +20,17 @@ on:
 env:
   BACKEND_IMAGE_NAME: {{ cookiecutter.backend_image_name }}
   FRONTEND_IMAGE_NAME: {{ cookiecutter.frontend_image_name }}
+
+  {%- if cookiecutter.docker_registry == "ghcr" -%}
+  GITHUB_ACTOR: ${{ github.actor }}
+  GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  {%- elif cookiecutter.docker_registry == "quay.io" -%}
+  QUAY_USER: ${{ secrets.QUAY_DMS_CONTAINER_REGISTRY_USER }}
+  QUAY_PASSWORD: ${{ secrets.QUAY_CONTAINER_REGISTRY_PASSWORD }}
+  QUAY_ORGANIZATION: your_organzatin
+  QUAY_TEAM: your_team
+  {%- endif -%}
   
 
 {% raw %}
@@ -45,31 +56,21 @@ jobs:
         commit-changes: 'false'
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build Test ${{ env.FRONTEND_IMAGE_NAME }} Container
+    - name: Test Build Frontend Container (Dry Run)
       if: steps.build-test.outputs.frontend-changed == 'true'
-      uses: ./.github/actions/dockerfile-build
-      with:
-        image-name: ${{ env.FRONTEND_IMAGE_NAME }}
-        push: false  # Never push in test workflow
-        quay-enabled: false
-        ghcr-enabled: true
-        linkyard-enabled: false
-        vulnerability-scan: false
-        working-directory: './frontend'
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        IMAGE_NAME: ${{ env.FRONTEND_IMAGE_NAME }}
+        WORKING_DIR: './frontend'
+        ADDITIONAL_TAG: v${{ steps.build-test.outputs.version }}
+      run: ./scripts/push-to-ghcr.sh --dry-run
 
-    - name: Build Test ${{ env.BACKEND_IMAGE_NAME }} Container
+    - name: Test Build Backend Container (Dry Run)
       if: steps.build-test.outputs.backend-changed == 'true'
-      uses: ./.github/actions/dockerfile-build
-      with:
-        image-name: ${{ env.BACKEND_IMAGE_NAME }}
-        push: false  # Never push in test workflow
-        quay-enabled: false
-        ghcr-enabled: true
-        linkyard-enabled: false
-        vulnerability-scan: false
-        working-directory: './backend'
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        IMAGE_NAME: ${{ env.BACKEND_IMAGE_NAME }}
+        WORKING_DIR: './backend'
+        ADDITIONAL_TAG: v${{ steps.build-test.outputs.version }}
+      run: ./scripts/push-to-ghcr.sh --dry-run
 
     - name: Generate Test Report
       if: always()

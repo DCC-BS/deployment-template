@@ -17,8 +17,51 @@ This directory contains scripts for pushing Docker images to different container
 ### For Deployment Preparation
 
 - Git installed and configured
-- Access to frontend and backend repositories
+- Access to configured repositories
 - GitHub token with appropriate permissions (for pushing version updates)
+
+## Repository Configuration
+
+The `prepare-deployment.sh` script now supports dynamic repository configuration instead of hardcoded frontend/backend repos. You can configure repositories in two ways:
+
+### Method 1: Using repos.config file (Recommended)
+
+Create a `repos.config` file in the project root with the following format:
+
+```
+# Repository Configuration
+# Format: repo_name=repository_url
+frontend=https://github.com/your-org/frontend-repo.git
+backend=https://github.com/your-org/backend-repo.git
+api=https://github.com/your-org/api-service.git
+mobile=https://github.com/your-org/mobile-app.git
+```
+
+### Method 2: Using Environment Variables
+
+Set environment variables with the pattern `*_REPO_URL`:
+
+```bash
+export FRONTEND_REPO_URL="https://github.com/your-org/frontend-repo.git"
+export BACKEND_REPO_URL="https://github.com/your-org/backend-repo.git"
+export API_REPO_URL="https://github.com/your-org/api-service.git"
+```
+
+### Backward Compatibility
+
+For backward compatibility, if no configuration is found, the script will fall back to the original `FRONTEND_REPO_URL` and `BACKEND_REPO_URL` environment variables.
+
+## Supported Project Types
+
+The script automatically detects and handles various project types:
+
+- **Node.js/JavaScript**: Detects `package.json`
+- **Python**: Detects `pyproject.toml`, `requirements.txt`, or `setup.py`
+- **Go**: Detects `go.mod`
+- **Java/Maven**: Detects `pom.xml`
+- **Java/Gradle**: Detects `build.gradle` or `build.gradle.kts`
+- **.NET**: Detects `*.csproj` or `*.sln`
+- **Docker**: Detects `Dockerfile` and `docker-compose.yml`
 
 ## Quick Setup
 

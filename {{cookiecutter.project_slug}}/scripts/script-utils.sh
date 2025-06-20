@@ -12,7 +12,7 @@
 #   - Git utilities: get_repo_owner_from_git, get_short_sha, get_commit_message
 #   - Docker utilities: check_docker_available, docker_login_with_retry
 #   - Version utilities: parse_version, bump_version
-#   - Environment: source_env_file
+#   - Environment: source_env_file, load_deploy_config
 
 # Color codes for output
 readonly RED='\033[0;31m'
@@ -348,6 +348,78 @@ source_env_file() {
     else
         log_debug "Environment file not found: $env_file"
     fi
+}
+
+# Load deployment configuration from deploy.config file
+# This function loads all variables from deploy.config and makes them available
+# Returns arrays for repository configuration parsing
+load_deploy_config() {
+    local config_file="${1:-deploy.config}"
+    
+    # Use absolute path if relative path is provided
+    if [[ "$config_file" != /* ]]; then
+        # If called from scripts directory, look in parent directory for deploy.config
+        if [[ "$(basename "$(pwd)")" == "scripts" ]] && [[ "$config_file" == "deploy.config" ]]; then
+            config_file="../$config_file"
+        fi
+    fi
+    
+    if [[ ! -f "$config_file" ]]; then
+        log_error "Deployment configuration file not found: $config_file"
+        return 1
+    fi
+    
+    log_info "Loading deployment configuration from $config_file..."
+    
+    # Initialize global arrays for repository configuration
+    declare -g -A REPO_URLS
+    declare -g -a REPO_NAMES
+    declare -g DOCKER_REGISTRY=""
+    
+    # Clear arrays in case function is called multiple times
+    REPO_URLS=()
+    REPO_NAMES=()
+    
+    # Read configuration file and process variables
+    while IFS='=' read -r key value || [[ -n "$key" ]]; do
+        # Skip comments and empty lines
+        [[ $key =~ ^[[:space:]]*# ]] && continue
+        [[ -z $key ]] && continue
+        
+        # Remove leading/trailing whitespace
+        key=$(echo "$key" | xargs)
+        value=$(echo "$value" | xargs)
+        
+        # Process the variable
+        if [[ -n "$key" ]] && [[ -n "$value" ]]; then
+            # Export the variable for general use
+            export "$key"="$value"
+            log_debug "Loaded: $key=$value"
+            
+            # Handle special variables
+            if [[ "$key" == "docker_registry" ]]; then
+                DOCKER_REGISTRY="$value"
+                log_debug "Set DOCKER_REGISTRY to: $DOCKER_REGISTRY"
+            else
+                # Check if the value looks like a repository URL
+                if [[ "$value" =~ ^https?://.*\.git$ ]] || [[ "$value" =~ ^git@ ]] || [[ "$value" =~ github\.com|gitlab\.com|bitbucket\.org ]]; then
+                    REPO_URLS["$key"]="$value"
+                    REPO_NAMES+=("$key")
+                    log_debug "Added repository: $key=$value"
+                fi
+            fi
+        fi
+    done < "$config_file"
+    
+    log_success "Deployment configuration loaded successfully"
+    log_info "Found ${#REPO_NAMES[@]} repositories"
+    if [[ -n "$DOCKER_REGISTRY" ]]; then
+        log_info "Docker registry configured: $DOCKER_REGISTRY"
+    else
+        log_info "Docker registry: not configured"
+    fi
+    
+    return 0
 }
 
 # =============================================================================

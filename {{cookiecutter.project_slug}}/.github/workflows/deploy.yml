@@ -63,4 +63,6 @@ jobs:
     - name: Push Docker Images
       if: success()
       run: ./scripts/deploy-all.sh
+      env:
+        ADDITIONAL_TAG: v${{ steps.build-test.outputs.version }}
 {% endraw %}

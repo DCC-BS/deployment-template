@@ -235,3 +235,6 @@ log_success "All images pushed successfully to Quay.io!"
 # Logout for security
 docker logout quay.io
 log_info "Logged out from quay.io"
+
+# Ensure script exits with success status
+exit 0

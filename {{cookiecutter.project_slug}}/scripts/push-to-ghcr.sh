@@ -241,3 +241,6 @@ log_success "All images pushed successfully to GitHub Container Registry!"
 # Logout for security
 docker logout ghcr.io
 log_info "Logged out from ghcr.io"
+
+# Ensure script exits with success status
+exit 0

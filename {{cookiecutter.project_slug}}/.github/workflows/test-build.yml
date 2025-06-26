@@ -59,6 +59,8 @@ jobs:
 
     - name: Test Docker Build
       run: ./scripts/deploy-all.sh --dry-run
+      env:
+        ADDITIONAL_TAG: v${{ steps.build-test.outputs.version }}
 
     - name: Generate Test Report
       if: always()

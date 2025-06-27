@@ -54,15 +54,15 @@ jobs:
         commit-changes: 'true'
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Push Docker Images
+      if: success()
+      run: ./scripts/deploy-all.sh
+      env:
+        ADDITIONAL_TAG: v${{ steps.build-test.outputs.version }
+
     - name: Create Git Tag
       if: success()
       run: |
         git tag v${{ steps.build-test.outputs.version }}
         git push origin v${{ steps.build-test.outputs.version }}
-
-    - name: Push Docker Images
-      if: success()
-      run: ./scripts/deploy-all.sh
-      env:
-        ADDITIONAL_TAG: v${{ steps.build-test.outputs.version }}
 {% endraw %}

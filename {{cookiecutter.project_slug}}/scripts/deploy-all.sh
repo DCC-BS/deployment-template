@@ -211,9 +211,7 @@ deploy_all() {
     
     # Track deployment results
     local successful_deployments=0
-    local failed_deployments=0
-    local failed_images=()
-    
+
     # Process each repository mapping
     for repo_name in "${REPO_NAMES[@]}"; do
         local repo_url="${REPO_URLS[$repo_name]}"
@@ -224,47 +222,31 @@ deploy_all() {
         local normalized_registry=$(normalize_registry_name "$DOCKER_REGISTRY")
         case "$normalized_registry" in
             ghcr)
-                if push_to_ghcr "$repo_name"; then
-                    ((successful_deployments++))
-                else
-                    ((failed_deployments++))
-                    failed_images+=("$repo_name")
+                if ! push_to_ghcr "$repo_name"; then
+                    log_error "Failed to deploy $repo_name - exiting immediately"
+                    exit 1
                 fi
                 ;;
             quay)
-                if push_to_quay "$repo_name"; then
-                    ((successful_deployments++))
-                else
-                    ((failed_deployments++))
-                    failed_images+=("$repo_name")
+                if ! push_to_quay "$repo_name"; then
+                    log_error "Failed to deploy $repo_name - exiting immediately"
+                    exit 1
                 fi
                 ;;
             *)
                 log_error "Unsupported registry: $DOCKER_REGISTRY"
-                ((failed_deployments++))
-                failed_images+=("$repo_name")
+                log_error "Failed to deploy $repo_name - exiting immediately"
+                exit 1
                 ;;
         esac
         
+        ((successful_deployments++))
         echo  # Add spacing between deployments
     done
     
     # Report deployment summary
-    log_info "Deployment Summary:"
-    log_info "  Total repositories: ${#REPO_NAMES[@]}"
-    log_info "  Successful deployments: $successful_deployments"
-    log_info "  Failed deployments: $failed_deployments"
-    
-    if [[ $failed_deployments -gt 0 ]]; then
-        log_error "Failed to deploy the following images:"
-        for failed_image in "${failed_images[@]}"; do
-            log_error "  - $failed_image"
-        done
-        exit 1
-    else
-        log_success "All images deployed successfully!"
-        exit 0
-    fi
+    log_success "All $successful_deployments images deployed successfully!"
+    exit 0
 }
 
 # Parse command line arguments

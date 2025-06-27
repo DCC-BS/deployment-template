@@ -209,8 +209,6 @@ deploy_all() {
     log_info "Using docker registry: $DOCKER_REGISTRY (normalized: $normalized_registry)"
     log_info "Found ${#REPO_NAMES[@]} repository mapping(s)"
     
-    # Track deployment results
-    local successful_deployments=0
 
     # Process each repository mapping
     for repo_name in "${REPO_NAMES[@]}"; do
@@ -240,12 +238,11 @@ deploy_all() {
                 ;;
         esac
         
-        ((successful_deployments++))
         echo  # Add spacing between deployments
     done
     
     # Report deployment summary
-    log_success "All $successful_deployments images deployed successfully!"
+    log_success "All images deployed successfully!"
     exit 0
 }
 

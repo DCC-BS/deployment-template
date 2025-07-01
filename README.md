@@ -89,16 +89,6 @@ worker=https://github.com/myorg/background-worker.git
 mobile=https://github.com/myorg/mobile-app.git
 ```
 
-### Environment Variables (Alternative)
-
-You can also configure repositories using environment variables:
-
-```bash
-export FRONTEND_REPO_URL="https://github.com/myorg/frontend.git"
-export API_REPO_URL="https://github.com/myorg/api.git"
-export WORKER_REPO_URL="https://github.com/myorg/worker.git"
-```
-
 ### Registry-Specific Configuration
 
 #### GitHub Container Registry (GHCR)
@@ -111,6 +101,8 @@ GITHUB_ACTOR="your-username"
 
 #### Quay.io Registry
 ```bash
+# set in .github/workflows/deploy.yml or test-build.yml
+# dont forget to set the organization and team in both workflows
 QUAY_USER="your-username"
 QUAY_PASSWORD="your-password-or-token"
 QUAY_ORGANIZATION="your-org"        # Optional

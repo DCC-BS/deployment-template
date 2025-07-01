@@ -27,8 +27,8 @@ env:
   {%- elif cookiecutter.docker_registry == "quay.io" -%}
   {% raw %}
   QUAY_USER: ${{ secrets.QUAY_DMS_CONTAINER_REGISTRY_USER }}
-  QUAY_PASSWORD: ${{ secrets.QUAY_CONTAINER_REGISTRY_PASSWORD }}
-  QUAY_ORGANIZATION: your_organzatin
+  QUAY_PASSWORD: ${{ secrets.QUAY_DMS_CONTAINER_REGISTRY_PASSWORD }}
+  QUAY_ORGANIZATION: your_organization
   QUAY_TEAM: your_team
   {% endraw %}
   {%- endif -%}

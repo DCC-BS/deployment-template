@@ -58,7 +58,7 @@ jobs:
       if: success()
       run: ./scripts/deploy-all.sh
       env:
-        ADDITIONAL_TAG: v${{ steps.build-test.outputs.version }
+        ADDITIONAL_TAG: v${{ steps.build-test.outputs.version }}
 
     - name: Create Git Tag
       if: success()

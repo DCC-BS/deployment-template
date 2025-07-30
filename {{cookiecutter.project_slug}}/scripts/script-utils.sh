@@ -374,11 +374,14 @@ load_deploy_config() {
     # Initialize global arrays for repository configuration
     declare -g -A REPO_URLS
     declare -g -a REPO_NAMES
+    declare -g -A REPO_NEEDS_CERTS
     declare -g DOCKER_REGISTRY=""
+    declare -g CERT_INSTALL_PATH=""
     
     # Clear arrays in case function is called multiple times
     REPO_URLS=()
     REPO_NAMES=()
+    REPO_NEEDS_CERTS=()
     
     # Read configuration file and process variables
     while IFS='=' read -r key value || [[ -n "$key" ]]; do
@@ -400,6 +403,14 @@ load_deploy_config() {
             if [[ "$key" == "docker_registry" ]]; then
                 DOCKER_REGISTRY="$value"
                 log_debug "Set DOCKER_REGISTRY to: $DOCKER_REGISTRY"
+            elif [[ "$key" == "cert_install_path" ]]; then
+                CERT_INSTALL_PATH="$value"
+                log_debug "Set CERT_INSTALL_PATH to: $CERT_INSTALL_PATH"
+            elif [[ "$key" =~ _needs_certs$ ]]; then
+                # Extract repository name from certificate flag
+                local repo_name="${key%_needs_certs}"
+                REPO_NEEDS_CERTS["$repo_name"]="$value"
+                log_debug "Set certificate flag for $repo_name: $value"
             else
                 # Check if the value looks like a repository URL
                 if [[ "$value" =~ ^https?://.*\.git$ ]] || [[ "$value" =~ ^git@ ]] || [[ "$value" =~ github\.com|gitlab\.com|bitbucket\.org ]]; then
@@ -418,7 +429,124 @@ load_deploy_config() {
     else
         log_info "Docker registry: not configured"
     fi
+    if [[ -n "$CERT_INSTALL_PATH" ]]; then
+        log_info "Certificate install path: $CERT_INSTALL_PATH"
+    else
+        log_info "Certificate install path: not configured (will use default)"
+    fi
     
+    return 0
+}
+
+# =============================================================================
+# CERTIFICATE UTILITIES
+# =============================================================================
+
+# Check if a repository needs certificates installed
+repo_needs_certificates() {
+    local repo_name="$1"
+    local needs_certs="${REPO_NEEDS_CERTS[$repo_name]:-false}"
+    
+    case "$needs_certs" in
+        true|True|TRUE|yes|Yes|YES|1)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# Get certificate files from assets directory
+get_certificate_files() {
+    local assets_dir="${1:-./assets}"
+    
+    if [[ ! -d "$assets_dir" ]]; then
+        log_debug "Assets directory not found: $assets_dir"
+        return 1
+    fi
+    
+    # Find certificate files with common extensions
+    find "$assets_dir" -type f \( -name "*.crt" -o -name "*.pem" -o -name "*.cer" \) 2>/dev/null
+}
+
+# Install certificates into Docker image
+install_certificates_in_image() {
+    local image_tag="$1"
+    local cert_install_path="${2:-/usr/local/share/ca-certificates}"
+    local assets_dir="${3:-./assets}"
+    
+    log_info "Installing certificates into image: $image_tag"
+    
+    # Check if we have certificate files
+    local cert_files
+    cert_files=$(get_certificate_files "$assets_dir")
+    
+    if [[ -z "$cert_files" ]]; then
+        log_warning "No certificate files found in $assets_dir"
+        return 0
+    fi
+    
+    log_info "Found certificate files to install:"
+    echo "$cert_files" | while read -r cert_file; do
+        log_info "  - $(basename "$cert_file")"
+    done
+    
+    # Create a temporary Dockerfile for certificate installation
+    local temp_dockerfile=$(mktemp)
+    cat > "$temp_dockerfile" << EOF
+FROM $image_tag
+
+# Install ca-certificates package if not present
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/* || \\
+    apk update && apk add ca-certificates || \\
+    yum install -y ca-certificates || \\
+    true
+
+# Create certificate directory
+RUN mkdir -p $cert_install_path
+
+# Copy certificate files
+EOF
+    
+    # Add COPY commands for each certificate file
+    echo "$cert_files" | while read -r cert_file; do
+        if [[ -n "$cert_file" ]]; then
+            echo "COPY $(realpath --relative-to="$PWD" "$cert_file") $cert_install_path/" >> "$temp_dockerfile"
+        fi
+    done
+    
+    # Add certificate update command
+    cat >> "$temp_dockerfile" << EOF
+
+# Update certificates
+RUN update-ca-certificates || \\
+    update-ca-trust || \\
+    true
+EOF
+    
+    # Build the image with certificates
+    local cert_image_tag="${image_tag}-with-certs"
+    log_info "Building image with certificates: $cert_image_tag"
+    
+    if ! docker build -f "$temp_dockerfile" -t "$cert_image_tag" .; then
+        log_error "Failed to build image with certificates"
+        rm -f "$temp_dockerfile"
+        return 1
+    fi
+    
+    # Tag the certificate image with the original tag
+    if ! docker tag "$cert_image_tag" "$image_tag"; then
+        log_error "Failed to tag certificate image"
+        rm -f "$temp_dockerfile"
+        return 1
+    fi
+    
+    # Clean up
+    docker rmi "$cert_image_tag" >/dev/null 2>&1 || true
+    rm -f "$temp_dockerfile"
+    
+    log_success "Certificates installed successfully into image: $image_tag"
     return 0
 }
 

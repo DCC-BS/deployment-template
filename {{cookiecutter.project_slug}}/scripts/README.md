@@ -51,6 +51,81 @@ export API_REPO_URL="https://github.com/your-org/api-service.git"
 
 For backward compatibility, if no configuration is found, the script will fall back to the original `FRONTEND_REPO_URL` and `BACKEND_REPO_URL` environment variables.
 
+## Certificate Installation
+
+The deployment scripts support automatic installation of certificates into Docker images. This is useful when your applications need to trust custom Certificate Authorities or internal certificates.
+
+### Configuration
+
+Certificate installation is configured in the `deploy.config` file:
+
+```
+# Certificate configuration
+cert_install_path=/usr/local/share/ca-certificates
+
+# Repository mappings with certificate flags
+frontend_image=https://github.com/your-org/frontend.git
+frontend_image_needs_certs=false
+backend_image=https://github.com/your-org/backend.git
+backend_image_needs_certs=true
+```
+
+### Certificate Files
+
+Place your certificate files in the `assets/` directory:
+
+```
+assets/
+├── company-root-ca.crt
+├── intermediate-ca.pem
+└── custom-cert.cer
+```
+
+Supported certificate formats:
+- `.crt` - Certificate files
+- `.pem` - PEM encoded certificates
+- `.cer` - Certificate files
+
+### How It Works
+
+When a repository is flagged with `{image_name}_needs_certs=true`:
+
+1. The Docker image is built normally using the project's Dockerfile
+2. A temporary Dockerfile is created that:
+   - Uses the built image as the base
+   - Installs the `ca-certificates` package (if not present)
+   - Copies all certificate files from `assets/` to the configured path
+   - Runs `update-ca-certificates` to install the certificates
+3. The image is re-tagged with the original tags
+4. The image with certificates is pushed to the registry
+
+### Template Variables
+
+When using with cookiecutter, configure these variables:
+
+- `images_need_certs`: Comma-separated boolean values (e.g., "false,true,false")
+- `cert_install_path`: Path where certificates should be installed (default: "/usr/local/share/ca-certificates")
+
+### Example Usage
+
+```bash
+# Deploy with automatic certificate installation
+./scripts/deploy-all.sh
+
+# Push individual image with certificates
+./scripts/push-to-ghcr.sh -i backend_image
+
+# The scripts will automatically detect if certificates are needed
+# and install them from the assets/ directory
+```
+
+### Supported Base Images
+
+The certificate installation works with:
+- Debian/Ubuntu based images (uses `apt-get` and `update-ca-certificates`)
+- Alpine Linux images (uses `apk` and `update-ca-certificates`)
+- RHEL/CentOS images (uses `yum` and `update-ca-trust`)
+
 ## Supported Project Types
 
 The script automatically detects and handles various project types:
@@ -297,6 +372,13 @@ jobs:
 | `FRONTEND_REPO_URL` | ❌ | Frontend repository URL | `https://github.com/your-org/frontend-repo.git` |
 | `BACKEND_REPO_URL` | ❌ | Backend repository URL | `https://github.com/your-org/backend-repo.git` |
 | `GITHUB_TOKEN` | ❌ | GitHub token for pushing changes | |
+
+### Certificate Installation
+
+| Variable | Required | Description | Default |
+|----------|----------|-------------|---------|
+| `CERT_INSTALL_PATH` | ❌ | Path where certificates are installed in images | `/usr/local/share/ca-certificates` |
+| `{IMAGE_NAME}_NEEDS_CERTS` | ❌ | Whether image needs certificate installation | `false` |
 
 ## Command Line Options
 

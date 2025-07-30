@@ -219,6 +219,33 @@ if ! docker build $TAG_ARGS -f "$DOCKERFILE_PATH" .; then
 fi
 log_success "Docker image built successfully"
 
+# Install certificates if needed
+if [[ -n "${IMAGE_NAME:-}" ]] && command -v repo_needs_certificates >/dev/null 2>&1; then
+    # Load deployment config to check certificate requirements
+    if load_deploy_config >/dev/null 2>&1; then
+        if repo_needs_certificates "$IMAGE_NAME"; then
+            log_info "Repository $IMAGE_NAME requires certificate installation"
+            
+            # Determine certificate install path
+            local cert_path="${CERT_INSTALL_PATH:-/usr/local/share/ca-certificates}"
+            
+            # Install certificates for all tags
+            for tag in "${TAGS[@]}"; do
+                if ! install_certificates_in_image "$tag" "$cert_path"; then
+                    log_error "Failed to install certificates in image: $tag"
+                    exit 1
+                fi
+            done
+        else
+            log_debug "Repository $IMAGE_NAME does not require certificates"
+        fi
+    else
+        log_debug "Could not load deployment config, skipping certificate check"
+    fi
+else
+    log_debug "Certificate installation not available or IMAGE_NAME not set"
+fi
+
 # Push all tags
 log_info "Pushing images to quay.io..."
 for tag in "${TAGS[@]}"; do

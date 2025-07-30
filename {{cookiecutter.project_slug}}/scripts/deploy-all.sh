@@ -209,6 +209,43 @@ deploy_all() {
     log_info "Using docker registry: $DOCKER_REGISTRY (normalized: $normalized_registry)"
     log_info "Found ${#REPO_NAMES[@]} repository mapping(s)"
     
+    # Check for certificate requirements
+    local cert_repos=()
+    for repo_name in "${REPO_NAMES[@]}"; do
+        if repo_needs_certificates "$repo_name"; then
+            cert_repos+=("$repo_name")
+        fi
+    done
+    
+    if [[ ${#cert_repos[@]} -gt 0 ]]; then
+        log_info "Repositories requiring certificate installation: ${cert_repos[*]}"
+        if [[ -n "${CERT_INSTALL_PATH:-}" ]]; then
+            log_info "Certificate install path: $CERT_INSTALL_PATH"
+        else
+            log_info "Certificate install path: /usr/local/share/ca-certificates (default)"
+        fi
+        
+        # Check if assets directory exists and has certificates
+        local assets_dir="./assets"
+        if [[ -d "$assets_dir" ]]; then
+            local cert_files
+            cert_files=$(get_certificate_files "$assets_dir" 2>/dev/null || echo "")
+            if [[ -n "$cert_files" ]]; then
+                log_info "Certificate files found in assets directory:"
+                echo "$cert_files" | while read -r cert_file; do
+                    log_info "  - $(basename "$cert_file")"
+                done
+            else
+                log_warning "No certificate files found in assets directory"
+                log_warning "Repositories requiring certificates: ${cert_repos[*]}"
+                log_warning "Please add certificate files to the assets directory"
+            fi
+        else
+            log_warning "Assets directory not found, but repositories need certificates: ${cert_repos[*]}"
+        fi
+    else
+        log_info "No repositories require certificate installation"
+    fi
 
     # Process each repository mapping
     for repo_name in "${REPO_NAMES[@]}"; do

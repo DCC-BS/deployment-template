@@ -204,6 +204,45 @@ if [[ "$DRY_RUN" == "true" ]]; then
         exit 1
     fi
     log_success "Docker image built successfully (dry run mode)"
+    
+    # Test certificate installation in dry run mode
+    log_debug "Checking certificate installation requirements..."
+    log_debug "IMAGE_NAME: '${IMAGE_NAME:-}'"
+    log_debug "repo_needs_certificates function exists: $(declare -f repo_needs_certificates >/dev/null 2>&1 && echo 'yes' || echo 'no')"
+    
+    if [[ -n "${IMAGE_NAME:-}" ]]; then
+        log_debug "IMAGE_NAME is set, checking for repo_needs_certificates function..."
+        if declare -f repo_needs_certificates >/dev/null 2>&1; then
+            log_debug "repo_needs_certificates function found, proceeding with certificate check..."
+            # Load deployment config to check certificate requirements (if not already loaded)
+            if [[ -z "${REPO_NAMES:-}" ]] && ! load_deploy_config >/dev/null 2>&1; then
+                log_debug "Could not load deployment config, skipping certificate check"
+            elif [[ -n "${REPO_NAMES:-}" ]] || load_deploy_config >/dev/null 2>&1; then
+                if repo_needs_certificates "$IMAGE_NAME"; then
+                    log_info "Repository $IMAGE_NAME requires certificate installation"
+                    
+                    # Determine certificate install path
+                    cert_path="${CERT_INSTALL_PATH:-/usr/local/share/ca-certificates}"
+                    
+                    # Actually install certificates in dry run mode (but don't push)
+                    log_info "DRY RUN - Installing certificates into images (no push)..."
+                    for tag in "${TAGS[@]}"; do
+                        if ! install_certificates_in_image "$tag" "$cert_path"; then
+                            log_error "Failed to install certificates in image: $tag"
+                            exit 1
+                        fi
+                    done
+                else
+                    log_debug "Repository $IMAGE_NAME does not require certificates"
+                fi
+            fi
+        else
+            log_debug "repo_needs_certificates function not found - script-utils.sh may not be properly sourced"
+        fi
+    else
+        log_debug "IMAGE_NAME is not set, skipping certificate installation"
+    fi
+    
     log_info "DRY RUN complete - image built but not pushed"
     exit 0
 fi
@@ -220,11 +259,18 @@ fi
 log_success "Docker image built successfully"
 
 # Install certificates if needed
-if [[ -n "${IMAGE_NAME:-}" ]] && declare -f repo_needs_certificates >/dev/null 2>&1; then
-    # Load deployment config to check certificate requirements (if not already loaded)
-    if [[ -z "${REPO_NAMES:-}" ]] && ! load_deploy_config >/dev/null 2>&1; then
-        log_debug "Could not load deployment config, skipping certificate check"
-    elif [[ -n "${REPO_NAMES:-}" ]] || load_deploy_config >/dev/null 2>&1; then
+log_debug "Checking certificate installation requirements..."
+log_debug "IMAGE_NAME: '${IMAGE_NAME:-}'"
+log_debug "repo_needs_certificates function exists: $(declare -f repo_needs_certificates >/dev/null 2>&1 && echo 'yes' || echo 'no')"
+
+if [[ -n "${IMAGE_NAME:-}" ]]; then
+    log_debug "IMAGE_NAME is set, checking for repo_needs_certificates function..."
+    if declare -f repo_needs_certificates >/dev/null 2>&1; then
+        log_debug "repo_needs_certificates function found, proceeding with certificate check..."
+        # Load deployment config to check certificate requirements (if not already loaded)
+        if [[ -z "${REPO_NAMES:-}" ]] && ! load_deploy_config >/dev/null 2>&1; then
+            log_debug "Could not load deployment config, skipping certificate check"
+        elif [[ -n "${REPO_NAMES:-}" ]] || load_deploy_config >/dev/null 2>&1; then
         if repo_needs_certificates "$IMAGE_NAME"; then
             log_info "Repository $IMAGE_NAME requires certificate installation"
             
@@ -241,9 +287,11 @@ if [[ -n "${IMAGE_NAME:-}" ]] && declare -f repo_needs_certificates >/dev/null 2
         else
             log_debug "Repository $IMAGE_NAME does not require certificates"
         fi
+    else
+        log_debug "repo_needs_certificates function not found - script-utils.sh may not be properly sourced"
     fi
 else
-    log_debug "Certificate installation not available or IMAGE_NAME not set"
+    log_debug "IMAGE_NAME is not set, skipping certificate installation"
 fi
 
 # Push all tags

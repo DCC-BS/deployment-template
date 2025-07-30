@@ -395,9 +395,13 @@ load_deploy_config() {
         
         # Process the variable
         if [[ -n "$key" ]] && [[ -n "$value" ]]; then
-            # Export the variable for general use
-            export "$key"="$value"
-            log_debug "Loaded: $key=$value"
+            # Export the variable for general use (only if it's a valid bash identifier)
+            if [[ "$key" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+                export "$key"="$value"
+                log_debug "Exported: $key=$value"
+            else
+                log_debug "Loaded (not exported - invalid identifier): $key=$value"
+            fi
             
             # Handle special variables
             if [[ "$key" == "docker_registry" ]]; then

@@ -226,9 +226,11 @@ fi
 log_success "Docker image built successfully"
 
 # Install certificates if needed
-if [[ -n "${IMAGE_NAME:-}" ]] && command -v repo_needs_certificates >/dev/null 2>&1; then
-    # Load deployment config to check certificate requirements
-    if load_deploy_config >/dev/null 2>&1; then
+if [[ -n "${IMAGE_NAME:-}" ]] && declare -f repo_needs_certificates >/dev/null 2>&1; then
+    # Load deployment config to check certificate requirements (if not already loaded)
+    if [[ -z "${REPO_NAMES:-}" ]] && ! load_deploy_config >/dev/null 2>&1; then
+        log_debug "Could not load deployment config, skipping certificate check"
+    elif [[ -n "${REPO_NAMES:-}" ]] || load_deploy_config >/dev/null 2>&1; then
         if repo_needs_certificates "$IMAGE_NAME"; then
             log_info "Repository $IMAGE_NAME requires certificate installation"
             
@@ -245,8 +247,6 @@ if [[ -n "${IMAGE_NAME:-}" ]] && command -v repo_needs_certificates >/dev/null 2
         else
             log_debug "Repository $IMAGE_NAME does not require certificates"
         fi
-    else
-        log_debug "Could not load deployment config, skipping certificate check"
     fi
 else
     log_debug "Certificate installation not available or IMAGE_NAME not set"

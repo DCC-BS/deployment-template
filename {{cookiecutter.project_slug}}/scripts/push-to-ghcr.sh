@@ -220,10 +220,23 @@ if [[ "$DRY_RUN" == "true" ]]; then
         log_debug "IMAGE_NAME is set, checking for repo_needs_certificates function..."
         if declare -f repo_needs_certificates >/dev/null 2>&1; then
             log_debug "repo_needs_certificates function found, proceeding with certificate check..."
-            # Load deployment config to check certificate requirements (if not already loaded)
-            if [[ -z "${REPO_NAMES:-}" ]] && ! load_deploy_config >/dev/null 2>&1; then
-                log_debug "Could not load deployment config, skipping certificate check"
-            elif [[ -n "${REPO_NAMES:-}" ]] || load_deploy_config >/dev/null 2>&1; then
+                # Load deployment config to check certificate requirements (if not already loaded)
+    if [[ -z "${REPO_NAMES:-}" ]]; then
+        # Try to load config from current directory first, then parent directory
+        config_loaded=false
+        if [[ -f "deploy.config" ]]; then
+            load_deploy_config "deploy.config" >/dev/null 2>&1 && config_loaded=true
+        elif [[ -f "../deploy.config" ]]; then
+            load_deploy_config "../deploy.config" >/dev/null 2>&1 && config_loaded=true
+        fi
+        
+        if [[ "$config_loaded" != "true" ]]; then
+            log_debug "Could not load deployment config, skipping certificate check"
+        fi
+    fi
+    
+    # Check if we have repository configuration loaded
+    if [[ -n "${REPO_NAMES:-}" ]] && [[ ${#REPO_NAMES[@]} -gt 0 ]]; then
                 if repo_needs_certificates "$IMAGE_NAME"; then
                     log_info "Repository $IMAGE_NAME requires certificate installation"
                     
@@ -232,8 +245,15 @@ if [[ "$DRY_RUN" == "true" ]]; then
                     
                     # Actually install certificates in dry run mode (but don't push)
                     log_info "DRY RUN - Installing certificates into images (no push)..."
+                    
+                    # Determine assets directory (check parent directory if not found locally)
+                    assets_dir="./assets"
+                    if [[ ! -d "$assets_dir" ]] && [[ -d "../assets" ]]; then
+                        assets_dir="../assets"
+                    fi
+                    
                     for tag in "${TAGS[@]}"; do
-                        if ! install_certificates_in_image "$tag" "$cert_path"; then
+                        if ! install_certificates_in_image "$tag" "$cert_path" "$assets_dir"; then
                             log_error "Failed to install certificates in image: $tag"
                             exit 1
                         fi
@@ -274,18 +294,37 @@ if [[ -n "${IMAGE_NAME:-}" ]]; then
     if declare -f repo_needs_certificates >/dev/null 2>&1; then
         log_debug "repo_needs_certificates function found, proceeding with certificate check..."
         # Load deployment config to check certificate requirements (if not already loaded)
-        if [[ -z "${REPO_NAMES:-}" ]] && ! load_deploy_config >/dev/null 2>&1; then
-            log_debug "Could not load deployment config, skipping certificate check"
-        elif [[ -n "${REPO_NAMES:-}" ]] || load_deploy_config >/dev/null 2>&1; then
+        if [[ -z "${REPO_NAMES:-}" ]]; then
+            # Try to load config from current directory first, then parent directory
+            config_loaded=false
+            if [[ -f "deploy.config" ]]; then
+                load_deploy_config "deploy.config" >/dev/null 2>&1 && config_loaded=true
+            elif [[ -f "../deploy.config" ]]; then
+                load_deploy_config "../deploy.config" >/dev/null 2>&1 && config_loaded=true
+            fi
+            
+            if [[ "$config_loaded" != "true" ]]; then
+                log_debug "Could not load deployment config, skipping certificate check"
+            fi
+        fi
+        
+        # Check if we have repository configuration loaded
+        if [[ -n "${REPO_NAMES:-}" ]] && [[ ${#REPO_NAMES[@]} -gt 0 ]]; then
         if repo_needs_certificates "$IMAGE_NAME"; then
             log_info "Repository $IMAGE_NAME requires certificate installation"
             
             # Determine certificate install path
-            local cert_path="${CERT_INSTALL_PATH:-/usr/local/share/ca-certificates}"
+            cert_path="${CERT_INSTALL_PATH:-/usr/local/share/ca-certificates}"
             
             # Install certificates for all tags
+            # Determine assets directory (check parent directory if not found locally)
+            assets_dir="./assets"
+            if [[ ! -d "$assets_dir" ]] && [[ -d "../assets" ]]; then
+                assets_dir="../assets"
+            fi
+            
             for tag in "${TAGS[@]}"; do
-                if ! install_certificates_in_image "$tag" "$cert_path"; then
+                if ! install_certificates_in_image "$tag" "$cert_path" "$assets_dir"; then
                     log_error "Failed to install certificates in image: $tag"
                     exit 1
                 fi

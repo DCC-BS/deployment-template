@@ -513,10 +513,18 @@ RUN mkdir -p $cert_install_path
 # Copy certificate files
 EOF
     
+    # Create a temporary directory for certificates in the build context
+    local build_cert_dir="temp_certs_$(date +%s)_$$"
+    local temp_cert_dir="./$build_cert_dir"
+    mkdir -p "$temp_cert_dir"
+    
     # Add COPY commands for each certificate file
     echo "$cert_files" | while read -r cert_file; do
         if [[ -n "$cert_file" ]]; then
-            echo "COPY $(realpath --relative-to="$PWD" "$cert_file") $cert_install_path/" >> "$temp_dockerfile"
+            # Copy certificate to temporary directory in build context
+            cp "$cert_file" "$temp_cert_dir/"
+            local cert_filename=$(basename "$cert_file")
+            echo "COPY $build_cert_dir/$cert_filename $cert_install_path/" >> "$temp_dockerfile"
         fi
     done
     
@@ -536,6 +544,7 @@ EOF
     if ! docker build -f "$temp_dockerfile" -t "$cert_image_tag" .; then
         log_error "Failed to build image with certificates"
         rm -f "$temp_dockerfile"
+        rm -rf "$temp_cert_dir" 2>/dev/null || true
         return 1
     fi
     
@@ -543,12 +552,14 @@ EOF
     if ! docker tag "$cert_image_tag" "$image_tag"; then
         log_error "Failed to tag certificate image"
         rm -f "$temp_dockerfile"
+        rm -rf "$temp_cert_dir" 2>/dev/null || true
         return 1
     fi
     
     # Clean up
     docker rmi "$cert_image_tag" >/dev/null 2>&1 || true
     rm -f "$temp_dockerfile"
+    rm -rf "$temp_cert_dir" 2>/dev/null || true
     
     log_success "Certificates installed successfully into image: $image_tag"
     return 0

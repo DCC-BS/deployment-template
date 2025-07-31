@@ -304,27 +304,28 @@ if [[ -n "${IMAGE_NAME:-}" ]]; then
         
         # Check if we have repository configuration loaded
         if [[ -n "${REPO_NAMES:-}" ]] && [[ ${#REPO_NAMES[@]} -gt 0 ]]; then
-        if repo_needs_certificates "$IMAGE_NAME"; then
-            log_info "Repository $IMAGE_NAME requires certificate installation"
-            
-            # Determine certificate install path
-            cert_path="${CERT_INSTALL_PATH:-/usr/local/share/ca-certificates}"
-            
-            # Install certificates for all tags
-            # Determine assets directory (check parent directory if not found locally)
-            assets_dir="./assets"
-            if [[ ! -d "$assets_dir" ]] && [[ -d "../assets" ]]; then
-                assets_dir="../assets"
-            fi
-            
-            for tag in "${TAGS[@]}"; do
-                if ! install_certificates_in_image "$tag" "$cert_path" "$assets_dir"; then
-                    log_error "Failed to install certificates in image: $tag"
-                    exit 1
+            if repo_needs_certificates "$IMAGE_NAME"; then
+                log_info "Repository $IMAGE_NAME requires certificate installation"
+                
+                # Determine certificate install path
+                cert_path="${CERT_INSTALL_PATH:-/usr/local/share/ca-certificates}"
+                
+                # Install certificates for all tags
+                # Determine assets directory (check parent directory if not found locally)
+                assets_dir="./assets"
+                if [[ ! -d "$assets_dir" ]] && [[ -d "../assets" ]]; then
+                    assets_dir="../assets"
                 fi
-            done
-        else
-            log_debug "Repository $IMAGE_NAME does not require certificates"
+                
+                for tag in "${TAGS[@]}"; do
+                    if ! install_certificates_in_image "$tag" "$cert_path" "$assets_dir"; then
+                        log_error "Failed to install certificates in image: $tag"
+                        exit 1
+                    fi
+                done
+            else
+                log_debug "Repository $IMAGE_NAME does not require certificates"
+            fi
         fi
     else
         log_debug "repo_needs_certificates function not found - script-utils.sh may not be properly sourced"

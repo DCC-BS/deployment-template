@@ -21,23 +21,23 @@ jobs:
 
       - name: Set Destination Image Name (Lowercase)
         run: |
-          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          REPO_LOWER=$(echo "{% raw %}${{ github.repository }}{% endraw %}" | tr '[:upper:]' '[:lower:]')
           echo "DESTINATION_IMAGE=ghcr.io/$REPO_LOWER" >> $GITHUB_ENV
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: "{% raw %}${{ github.actor }}{% endraw %}"
+          password: "{% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}"
 
       - name: Inspect Original Image for User
         id: inspect
         run: |
-          docker pull {{ cookiecutter.docker_image_name }}:${{ inputs.tag }}
+          docker pull {{ cookiecutter.docker_image_name }}:{% raw %}${{ inputs.tag }}{% endraw %}
 
           # Extract the User config
-          ORIGINAL_USER=$(docker inspect --format='{{.Config.User}}' {{ cookiecutter.docker_image_name }}:${{ inputs.tag }})
+          ORIGINAL_USER=$(docker inspect --format='{% raw %}{{.Config.User}}{% endraw %}' {{ cookiecutter.docker_image_name }}:{% raw %}${{ inputs.tag }}{% endraw %})
 
           # Default to root if the image doesn't specify a user
           if [ -z "$ORIGINAL_USER" ]; then
@@ -53,7 +53,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ env.DESTINATION_IMAGE }}:${{ inputs.tag }}
+          tags: "{% raw %}${{ env.DESTINATION_IMAGE }}{% endraw %}:{% raw %}${{ inputs.tag }}{% endraw %}"
           build-args: |
-            TAG=${{ inputs.tag }}
-            ORIGINAL_USER=${{ steps.inspect.outputs.original_user }}
+            TAG={% raw %}${{ inputs.tag }}{% endraw %}
+            ORIGINAL_USER={% raw %}${{ steps.inspect.outputs.original_user }}{% endraw %}

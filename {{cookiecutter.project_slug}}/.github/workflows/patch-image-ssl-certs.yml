@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "The Docker Tag to pull (e.g., v0.1.0)"
+        description: "The Docker Tag to pull (e.g., 0.1.0)"
         required: true
         type: string
 

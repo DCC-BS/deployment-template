@@ -1,16 +1,4 @@
 {
     "project_slug": "demo-app",
-    "repo_urls": "https://github.com/your-org/frontend-repo.git,https://github.com/your-org/backend-repo.git",
-    "image_names": "frontend_image,backend_image",
-    "images_need_certs": "false,true",
-    "cert_install_path": "/usr/local/share/ca-certificates",
-    "start_version": "0.0.1",
-    "docker_registry": [
-        "ghcr",
-        "quay.io"
-    ],
-    "_copy_without_render": [
-        "scripts/*",
-        ".github/actions/*"
-    ]
+    "docker_image_name": "ghcr.io/dcc-bs/bs-translator-backend"
 }

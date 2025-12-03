@@ -1,0 +1,59 @@
+name: Patch Image with SSL
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The Docker Tag to pull (e.g., v0.1.0)"
+        required: true
+        type: string
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Destination Image Name (Lowercase)
+        run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "DESTINATION_IMAGE=ghcr.io/$REPO_LOWER" >> $GITHUB_ENV
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Inspect Original Image for User
+        id: inspect
+        run: |
+          docker pull {{ cookiecutter.docker_image_name }}:${{ inputs.tag }}
+
+          # Extract the User config
+          ORIGINAL_USER=$(docker inspect --format='{{.Config.User}}' {{ cookiecutter.docker_image_name }}:${{ inputs.tag }})
+
+          # Default to root if the image doesn't specify a user
+          if [ -z "$ORIGINAL_USER" ]; then
+            ORIGINAL_USER="root"
+          fi
+
+          echo "Detected original user: $ORIGINAL_USER"
+          echo "original_user=$ORIGINAL_USER" >> $GITHUB_OUTPUT
+
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ env.DESTINATION_IMAGE }}:${{ inputs.tag }}
+          build-args: |
+            TAG=${{ inputs.tag }}
+            ORIGINAL_USER=${{ steps.inspect.outputs.original_user }}

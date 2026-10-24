@@ -25,7 +25,7 @@ jobs:
           echo "DESTINATION_IMAGE=ghcr.io/$REPO_LOWER" >> $GITHUB_ENV
 
       - name: Log in to the Container registry
-        uses: docker/login-action@a0d57b8e43b6ef1cca20559d68cec2227e63fccd # v3
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ghcr.io
           username: "{% raw %}${{ github.actor }}{% endraw %}"
